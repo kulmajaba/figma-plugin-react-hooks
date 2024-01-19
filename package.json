@@ -2,9 +2,10 @@
   "name": "figma-plugin-react-hooks",
   "version": "1.0.0",
   "description": "",
-  "module": "lib/index.mjs",
-  "main": "lib/index.cjs",
-  "types": "lib/index.d.ts",
+  "exports": {
+    ".": "./lib/index.mjs",
+    "./hook": "./lib/hook.mjs"
+  },
   "files": [
     "LICENSE",
     "README.md",
@@ -12,23 +13,30 @@
     "src/"
   ],
   "scripts": {
+    "start": "npm run dev",
     "build": "rm -rf lib/* && npm run build:common && npm run build:esm && npm run build:types",
-    "build:common": "esbuild src/index.ts --target=es2017 --sourcemap --bundle --outfile=lib/index.cjs",
-    "build:esm": "esbuild src/index.ts --target=es2017 --format=esm --sourcemap --bundle --outfile=lib/index.mjs",
+    "dev": "concurrently -n cjs,esm,hook,ts 'npm run build:common -- --watch' 'npm run build:esm -- --watch' 'npm run build:hook -- --watch' 'npm run build:types -- --watch'",
+    "build:js": "esbuild src/index.ts --target=es2017 --sourcemap --bundle",
+    "build:common": "npm run build:js -- --format=cjs --outfile=lib/index.cjs",
+    "build:esm": "npm run build:js -- --format=esm --outfile=lib/index.mjs",
+    "build:hook": "esbuild src/hook.ts --target=es2017 --format=esm --sourcemap --bundle --external:react --outfile=lib/hook.mjs",
     "build:types": "tsc --emitDeclarationOnly --declaration",
     "prepublishOnly": "npm run build"
   },
   "author": "Mika Kuitunen",
   "license": "MIT",
+  "peerDependencies": {
+    "react": ">=17.0.0"
+  },
   "dependencies": {
-    "figma-plugin-api": "^1.0.1",
-    "react": "^18.2.0"
+    "figma-plugin-api": "^1.0.1"
   },
   "devDependencies": {
     "@figma/plugin-typings": "*",
     "@types/react": "^18.2.45",
     "@typescript-eslint/eslint-plugin": "^6.6.0",
     "@typescript-eslint/parser": "^6.6.0",
+    "concurrently": "^8.2.2",
     "esbuild": "^0.19.2",
     "eslint": "^8.49.0",
     "eslint-config-prettier": "^9.0.0",

@@ -33,7 +33,7 @@ const resolveNodeProperties = <T extends SceneNode>(object: T, propertyKeys?: re
   let getters = getterKeys.filter((key: keyof T) => typeof descriptors[key].get === 'function');
 
   if (propertyKeys) {
-    getters = getters.filter((key) => propertyKeys.includes(key));
+    getters = getters.filter((key) => propertyKeys.includes(key as SceneNodePropertyKey));
   }
 
   getters = getters.filter((key) => defaultNodePropertyGetterFilter(key, object));
@@ -62,7 +62,9 @@ const resolveAndSerializeNodeProperties = (
   console.log(test);
 
   for (const key of strictObjectKeys(resolvedNode)) {
+    // @ts-expect-error the type is asserted as serialized earlier
     if (resolvedNode[key] === figma.mixed) {
+      // @ts-expect-error I don't know why this errors
       resolvedNode[key] = FIGMA_MIXED as SerializedNodeProperty<SceneNode[keyof SceneNode]>;
     }
   }
@@ -96,12 +98,22 @@ export const resolveAndFilterNodes = (
   const result: SerializedNode<SceneNode & ParentChainVisibleMixin>[] = [];
   const { nodeTypes, resolveChildrenNodes, resolveProperties: propertyKeys } = options;
 
+  console.log(options);
+
   if (nodeTypes !== undefined) {
     nodes.forEach((node) => {
       if (nodeTypes.includes(node.type)) {
         result.push(resolveAndSerializeNodeProperties(node, propertyKeys === 'all' ? undefined : propertyKeys));
       } else if (nodeCanHaveChildren(node) && resolveChildrenNodes) {
         result.push(...resolveAndFilterNodes(node.children, options, parentChainVisible && node.visible));
+      }
+    });
+  } else {
+    nodes.forEach((node) => {
+      if (nodeCanHaveChildren(node) && resolveChildrenNodes) {
+        result.push(...resolveAndFilterNodes(node.children, options, parentChainVisible && node.visible));
+      } else {
+        result.push(resolveAndSerializeNodeProperties(node, propertyKeys === 'all' ? undefined : propertyKeys));
       }
     });
   }
