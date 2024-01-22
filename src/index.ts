@@ -1,22 +1,21 @@
 import { createUIAPI, createPluginAPI } from 'figma-plugin-api';
 
-import { deSerializeNode, resolveAndFilterNodes } from './utils';
+import { resolveAndFilterNodes } from './utils';
 
-import { FigmaSelectionHookOptions, FigmaSelectionListener, SerializedNode } from './types';
+import { FigmaSelectionHookOptions, FigmaSelectionListener, SerializedResolvedNode } from './types';
 
 export { FIGMA_MIXED } from './constants';
 
 declare global {
   interface Window {
-    _figma_onSelectionChange?: (selection: ReadonlyArray<SceneNode>) => void;
+    _figma_onSelectionChange?: (selection: ReadonlyArray<SerializedResolvedNode>) => void;
   }
 }
 
 export const uiApi = createUIAPI({
-  _onSelectionChange(selection: ReadonlyArray<SerializedNode<SceneNode>>) {
+  _onSelectionChange(selection: ReadonlyArray<SerializedResolvedNode>) {
     if (typeof window._figma_onSelectionChange !== 'undefined') {
-      const deSerializedSelection = selection.map(deSerializeNode);
-      window._figma_onSelectionChange(deSerializedSelection);
+      window._figma_onSelectionChange(selection);
     }
   }
 });

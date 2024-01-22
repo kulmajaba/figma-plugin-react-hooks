@@ -5,13 +5,10 @@ import {
   nodeCanHaveChildren,
   strictObjectKeys,
   NodePropertyFilter,
-  SerializedNode,
   SerializedNodeProperty,
-  DeserializedNode,
-  DeserializedNodeProperty,
   ResolverOptions,
   SceneNodePropertyKey,
-  ParentChainVisibleMixin
+  SerializedResolvedNode
 } from './types';
 
 const defaultNodePropertyGetterFilter: NodePropertyFilter = (key, node) => {
@@ -25,12 +22,16 @@ const defaultNodePropertyGetterFilter: NodePropertyFilter = (key, node) => {
 };
 
 const resolveNodeProperties = <T extends SceneNode>(object: T, propertyKeys?: readonly SceneNodePropertyKey[]): T => {
+  console.log(object);
   const descriptors = Object.getOwnPropertyDescriptors<T>(Object.getPrototypeOf(object));
 
-  // In reality the type is string | number | keyof T from getOwnPropertyNames
+  // In reality the type is string | number | keyof T from getOwnPropertyDescriptors
   // but we can safely assert a narrower type
   const getterKeys = strictObjectKeys(descriptors) as (keyof T)[];
   let getters = getterKeys.filter((key: keyof T) => typeof descriptors[key].get === 'function');
+
+  // Type is not included in the node prototype and is only evaluated when necessary
+  getters.push('type');
 
   if (propertyKeys) {
     getters = getters.filter((key) => propertyKeys.includes(key as SceneNodePropertyKey));
@@ -45,47 +46,33 @@ const resolveNodeProperties = <T extends SceneNode>(object: T, propertyKeys?: re
     objectWithProperties[getter] = object[getter];
   }
 
-  return objectWithProperties as T;
+  console.log(objectWithProperties);
+
+  return objectWithProperties;
 };
 
 const resolveAndSerializeNodeProperties = (
   object: SceneNode,
   propertyKeys?: readonly SceneNodePropertyKey[],
   parentChainVisible: boolean = true
-): SerializedNode<SceneNode & ParentChainVisibleMixin> => {
+): SerializedResolvedNode => {
   // The type for resolvedNode is SceneNode, but we need to assert the Serialized type to allow the mixed type conversion
-  const resolvedNode = resolveNodeProperties(object, propertyKeys) as Mutable<
-    SerializedNode<SceneNode & ParentChainVisibleMixin>
-  >;
-
-  const test: (typeof resolvedNode)['parentChainVisible'] = true;
-  console.log(test);
+  const resolvedNode = resolveNodeProperties(object, propertyKeys) as Mutable<SerializedResolvedNode>;
 
   for (const key of strictObjectKeys(resolvedNode)) {
-    // @ts-expect-error the type is asserted as serialized earlier
+    // @ts-expect-error for union types, keyof only gives the common property keys of the union members
+    // figma.mixed is not used in the common properties so this gives a 2367 (no overlap) error
+    // If we use a utility type to 'smoosh' the union types together, we lose the property types
     if (resolvedNode[key] === figma.mixed) {
-      // @ts-expect-error I don't know why this errors
+      // @ts-expect-error SerializedNodeProperty is not assignable to 'never' error
       resolvedNode[key] = FIGMA_MIXED as SerializedNodeProperty<SceneNode[keyof SceneNode]>;
     }
   }
 
+  // TODO: Make this optional
   resolvedNode.parentChainVisible = parentChainVisible;
 
   return resolvedNode;
-};
-
-export const deSerializeNode = <T extends SerializedNode<SceneNode>>(object: T): DeserializedNode<T> => {
-  const deSerializedObject = {
-    ...object
-  } as DeserializedNode<T>;
-
-  for (const key of strictObjectKeys(deSerializedObject)) {
-    if (deSerializedObject[key] === FIGMA_MIXED) {
-      deSerializedObject[key] = figma.mixed as DeserializedNodeProperty<T[keyof T]>;
-    }
-  }
-
-  return deSerializedObject;
 };
 
 // TODO: Resolve variables
@@ -94,11 +81,9 @@ export const resolveAndFilterNodes = (
   nodes: readonly SceneNode[],
   options: ResolverOptions,
   parentChainVisible: boolean = true
-): SerializedNode<SceneNode & ParentChainVisibleMixin>[] => {
-  const result: SerializedNode<SceneNode & ParentChainVisibleMixin>[] = [];
+): readonly SerializedResolvedNode[] => {
+  const result: SerializedResolvedNode[] = [];
   const { nodeTypes, resolveChildrenNodes, resolveProperties: propertyKeys } = options;
-
-  console.log(options);
 
   if (nodeTypes !== undefined) {
     nodes.forEach((node) => {
@@ -111,7 +96,11 @@ export const resolveAndFilterNodes = (
   } else {
     nodes.forEach((node) => {
       if (nodeCanHaveChildren(node) && resolveChildrenNodes) {
-        result.push(...resolveAndFilterNodes(node.children, options, parentChainVisible && node.visible));
+        const newNode = {
+          ...resolveAndSerializeNodeProperties(node, propertyKeys === 'all' ? undefined : propertyKeys),
+          children: resolveAndFilterNodes(node.children, options, parentChainVisible && node.visible)
+        } as SerializedResolvedNode;
+        result.push(newNode);
       } else {
         result.push(resolveAndSerializeNodeProperties(node, propertyKeys === 'all' ? undefined : propertyKeys));
       }

@@ -4,19 +4,18 @@ import useMountedEffect from './useMountedEffect';
 
 import { api, listeners, setlisteners } from '.';
 
-import { FigmaSelectionHookOptions } from './types';
+import { FigmaSelectionHookOptions, SerializedResolvedNode } from './types';
 
 export { FigmaSelectionHookOptions } from './types';
 export { FIGMA_MIXED } from './constants';
 
-type FigmaSelectionReturnType = [ReadonlyArray<SceneNode>, (selection: ReadonlyArray<SceneNode>) => void];
+type FigmaSelectionReturnType = [ReadonlyArray<SerializedResolvedNode>, (selection: ReadonlyArray<SceneNode>) => void];
 
 const defaultOptions: Required<Omit<FigmaSelectionHookOptions, 'nodeTypes' | 'apiOptions'>> = {
   resolveChildrenNodes: false,
   resolveVariables: false,
   resolveProperties: 'all',
-  addParentChainVisibleProperty: false,
-  useFigmaMixed: false
+  addParentChainVisibleProperty: false
 };
 
 /**
@@ -25,7 +24,7 @@ const defaultOptions: Required<Omit<FigmaSelectionHookOptions, 'nodeTypes' | 'ap
 const useFigmaSelection = (hookOptions?: FigmaSelectionHookOptions): FigmaSelectionReturnType => {
   const opts = { ...defaultOptions, ...hookOptions };
 
-  const [selection, setSelection] = useState<ReadonlyArray<SceneNode>>([]);
+  const [selection, setSelection] = useState<ReadonlyArray<SerializedResolvedNode>>([]);
 
   useMountedEffect(() => {
     console.warn('useFigmaSelection: changing options once mounted will not affect the behavior of the hook');

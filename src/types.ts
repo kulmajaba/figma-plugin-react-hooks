@@ -2,22 +2,18 @@ import { RPCOptions } from 'figma-plugin-api';
 
 import { FIGMA_MIXED } from './constants';
 
-export type FigmaSelectionListener = (selection: ReadonlyArray<SceneNode>) => void;
+export type FigmaSelectionListener = (selection: ReadonlyArray<SerializedResolvedNode>) => void;
 
 export type Mutable<T> = { -readonly [P in keyof T]: T[P] };
-
-export interface ParentChainVisibleMixin {
-  parentChainVisible: boolean;
-}
 
 export type SerializedNodeProperty<T> = T extends PluginAPI['mixed'] ? typeof FIGMA_MIXED : T;
 export type SerializedNode<T extends SceneNode> = {
   [key in keyof T]: SerializedNodeProperty<T[key]>;
 };
 
-export type DeserializedNodeProperty<T> = T extends typeof FIGMA_MIXED ? PluginAPI['mixed'] : T;
-export type DeserializedNode<T extends SerializedNode<SceneNode>> = {
-  [key in keyof T]: DeserializedNodeProperty<T[key]>;
+export type SerializedResolvedNode = SerializedNode<SceneNode> & {
+  parentChainVisible?: boolean;
+  children?: readonly SerializedResolvedNode[];
 };
 
 export type NodePropertyFilter = <T extends SceneNode>(key: keyof T, node: T) => boolean;
@@ -82,14 +78,6 @@ export interface FigmaSelectionHookOptions {
    * Default: `false`
    */
   addParentChainVisibleProperty?: boolean;
-  /**
-   * Use `figma.mixed` in plugin UI instead of `FIGMA_MIXED`
-   *
-   * This causes a performance hit
-   *
-   * Default: `false`
-   */
-  useFigmaMixed?: boolean;
   /**
    * Options for figma-plugin-api
    */
