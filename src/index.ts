@@ -2,7 +2,12 @@ import { createUIAPI, createPluginAPI } from 'figma-plugin-api';
 
 import { resolveAndFilterNodes } from './utils';
 
-import { FigmaSelectionHookOptions, FigmaSelectionListener, SerializedResolvedNode } from './types';
+import {
+  FigmaSelectionHookOptions,
+  FigmaSelectionListener,
+  SerializedResolvedNode,
+  nodeCanHaveChildren
+} from './types';
 
 export { FIGMA_MIXED } from './constants';
 
@@ -26,16 +31,35 @@ const selectionChangeHandler = () => {
   uiApi._onSelectionChange(resolveAndFilterNodes(figma.currentPage.selection, options));
 };
 
+const changesApplyToSelectedNodesOrDescendants = (e: DocumentChangeEvent, nodes: readonly SceneNode[]): boolean => {
+  const changesApplyToNodes = e.documentChanges.some(
+    (change) => nodes.findIndex((node) => node.id === change.id) !== -1
+  );
+
+  if (changesApplyToNodes) {
+    return true;
+  }
+
+  const descendants: SceneNode[] = [];
+
+  nodes.forEach((node) => {
+    if (nodeCanHaveChildren(node)) {
+      descendants.push(...node.children);
+    }
+  });
+
+  if (descendants.length === 0) {
+    return false;
+  }
+
+  return changesApplyToSelectedNodesOrDescendants(e, descendants);
+};
+
 const documentChangeHandler = (e: DocumentChangeEvent) => {
   if (figma.currentPage.selection.length > 0) {
     const selection = figma.currentPage.selection;
 
-    // Rudimentary check to see if changes affect selection
-    const changesApplyToSelectedNodes = e.documentChanges.some((change) =>
-      selection.findIndex((node) => node.id === change.id)
-    );
-
-    if (changesApplyToSelectedNodes) {
+    if (changesApplyToSelectedNodesOrDescendants(e, selection)) {
       selectionChangeHandler();
     }
   }
