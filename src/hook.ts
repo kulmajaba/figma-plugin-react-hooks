@@ -15,7 +15,7 @@ const defaultOptions: Required<Omit<FigmaSelectionHookOptions, 'nodeTypes' | 'ap
   resolveChildrenNodes: false,
   resolveVariables: false,
   resolveProperties: 'all',
-  addParentChainVisibleProperty: false
+  addAncestorsVisibleProperty: false
 };
 
 /**

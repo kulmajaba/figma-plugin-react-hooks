@@ -12,11 +12,9 @@ export type SerializedNode<T extends SceneNode> = {
 };
 
 export type SerializedResolvedNode = SerializedNode<SceneNode> & {
-  parentChainVisible?: boolean;
+  ancestorsVisible?: boolean;
   children?: readonly SerializedResolvedNode[];
 };
-
-export type NodePropertyFilter = <T extends SceneNode>(key: keyof T, node: T) => boolean;
 
 // https://github.com/microsoft/TypeScript/issues/17002#issuecomment-1529056512
 type ArrayType<T> = Extract<true extends T & false ? unknown[] : T extends readonly unknown[] ? T : unknown[], T>;
@@ -73,11 +71,13 @@ export interface FigmaSelectionHookOptions {
    */
   resolveVariables?: boolean;
   /**
-   * Add `parentChainVisible` property to nodes who have a hidden node in their parent chain
+   * Add `ancestorsVisible` property to all nodes
+   *
+   * This property is true only if all ancestors of the node are visible
    *
    * Default: `false`
    */
-  addParentChainVisibleProperty?: boolean;
+  addAncestorsVisibleProperty?: boolean;
   /**
    * Options for figma-plugin-api
    */
@@ -87,6 +87,6 @@ export interface FigmaSelectionHookOptions {
 export type ResolverOptions = Readonly<
   Pick<
     FigmaSelectionHookOptions,
-    'nodeTypes' | 'resolveChildrenNodes' | 'resolveProperties' | 'resolveVariables' | 'addParentChainVisibleProperty'
+    'nodeTypes' | 'resolveChildrenNodes' | 'resolveProperties' | 'resolveVariables' | 'addAncestorsVisibleProperty'
   >
 >;
