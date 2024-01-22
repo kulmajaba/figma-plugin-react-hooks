@@ -27,8 +27,9 @@ export const uiApi = createUIAPI({
 
 const selectionChangeHandler = () => {
   console.log('Selection change handler', figma.currentPage.selection);
-  console.log('Filtered selection:', resolveAndFilterNodes(figma.currentPage.selection, options));
-  uiApi._onSelectionChange(resolveAndFilterNodes(figma.currentPage.selection, options));
+  const resolvedSelection = resolveAndFilterNodes(figma.currentPage.selection, options);
+  console.log('Filtered selection:', resolvedSelection);
+  uiApi._onSelectionChange(resolvedSelection);
 };
 
 const changesApplyToSelectedNodesOrDescendants = (e: DocumentChangeEvent, nodes: readonly SceneNode[]): boolean => {
@@ -71,6 +72,7 @@ export const api = createPluginAPI({
     options = opts;
     figma.on('selectionchange', selectionChangeHandler);
     figma.on('documentchange', documentChangeHandler);
+    selectionChangeHandler();
   },
   _deregisterForSelectionChange() {
     figma.off('selectionchange', selectionChangeHandler);

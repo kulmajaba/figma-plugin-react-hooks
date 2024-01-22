@@ -33,15 +33,16 @@ const useFigmaSelection = (hookOptions?: FigmaSelectionHookOptions): FigmaSelect
   useEffect(() => {
     console.log('Hook mount');
     const mount = async () => {
-      if (!listeners.length) {
-        // if it's the first listener, register for selection change
+      listeners.push(setSelection);
+
+      // if it's the first listener, register for selection change
+      if (listeners.length === 1) {
         try {
           await api._registerForSelectionChange(opts);
         } catch (e) {
           console.error(e);
         }
       }
-      listeners.push(setSelection);
     };
 
     mount();

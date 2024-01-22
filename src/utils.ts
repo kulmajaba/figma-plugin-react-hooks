@@ -20,7 +20,7 @@ const defaultNodePropertyGetterFilter = <T extends SceneNode>(key: keyof T, node
 };
 
 const resolveNodeProperties = <T extends SceneNode>(node: T, propertyKeys?: readonly SceneNodePropertyKey[]): T => {
-  console.log(node);
+  //console.log(node);
   const descriptors = Object.getOwnPropertyDescriptors<T>(Object.getPrototypeOf(node));
 
   // In reality the type is string | number | keyof T from getOwnPropertyDescriptors
@@ -44,7 +44,7 @@ const resolveNodeProperties = <T extends SceneNode>(node: T, propertyKeys?: read
     objectWithProperties[getter] = node[getter];
   }
 
-  console.log(objectWithProperties);
+  //console.log(objectWithProperties);
 
   return objectWithProperties;
 };
