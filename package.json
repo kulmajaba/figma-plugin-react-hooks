@@ -3,8 +3,24 @@
   "version": "1.0.0",
   "description": "",
   "exports": {
-    ".": "./lib/index.mjs",
-    "./hook": "./lib/hook.mjs"
+    ".": {
+      "import": "./lib/index.mjs",
+      "require": "./lib/index.cjs"
+    },
+    "./hook": {
+      "import": "./lib/hook.mjs",
+      "require": "./lib/hook.cjs"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "lib/index.d.ts"
+      ],
+      "hook": [
+        "lib/hook.d.ts"
+      ]
+    }
   },
   "files": [
     "LICENSE",
@@ -14,13 +30,15 @@
   ],
   "scripts": {
     "start": "npm run dev",
-    "build": "rm -rf lib/* && npm run build:common && npm run build:esm && npm run build:types",
-    "dev": "concurrently -n cjs,esm,hook,ts 'npm run build:common -- --watch' 'npm run build:esm -- --watch' 'npm run build:hook -- --watch' 'npm run build:types -- --watch'",
-    "build:js": "esbuild src/index.ts --target=es2017 --sourcemap --bundle",
-    "build:common": "npm run build:js -- --format=cjs --outfile=lib/index.cjs",
-    "build:esm": "npm run build:js -- --format=esm --outfile=lib/index.mjs",
-    "build:hook": "esbuild src/hook.ts --target=es2017 --format=esm --sourcemap --bundle --external:react --outfile=lib/hook.mjs",
-    "build:types": "tsc --emitDeclarationOnly --declaration",
+    "build": "rm -rf lib/* && npm run build:index:common && npm run build:index:esm && npm run build:hook:common && npm run build:hook:esm && npm run build:types",
+    "dev": "concurrently -n index-cjs,index-esm,hook-cjs,hook-esm,ts 'npm run build:index:common -- --watch' 'npm run build:index:esm -- --watch' 'npm run build:hook:common -- --watch' 'npm run build:hook:esm -- --watch' 'npm run build:types -- --watch'",
+    "build:index": "esbuild src/index.ts --target=es2017 --sourcemap --bundle",
+    "build:index:common": "npm run build:index -- --format=cjs --outfile=lib/index.cjs",
+    "build:index:esm": "npm run build:index -- --format=esm --outfile=lib/index.mjs",
+    "build:hook": "esbuild src/hook.ts --target=es2017 --sourcemap --bundle --external:react",
+    "build:hook:common": "npm run build:hook -- --format=cjs --outfile=lib/hook.cjs",
+    "build:hook:esm": "npm run build:hook -- --format=esm --outfile=lib/hook.mjs",
+    "build:types": "tsc --emitDeclarationOnly --declaration --preserveWatchOutput",
     "prepublishOnly": "npm run build"
   },
   "author": "Mika Kuitunen",
