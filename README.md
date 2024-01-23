@@ -96,9 +96,54 @@ export default SomeComponent;
 
 ___
 
+### KeysOfUnion
+
+Ƭ **KeysOfUnion**\<`T`\>: `T` extends infer P ? keyof `P` : `never`
+
+Get all keys of a union type.
+
+Normally, `keyof` only returns the keys of the intersection of the union.
+
+#### Type parameters
+
+| Name |
+| :------ |
+| `T` |
+
+___
+
+### SceneNodeType
+
+Ƭ **SceneNodeType**: `SceneNode`[``"type"``]
+
+___
+
+### SceneNodeKeys
+
+Ƭ **SceneNodeKeys**\<`T`\>: [`KeysOfUnion`](types.md#keysofunion)\<`T` extends [`SceneNodeType`](types.md#scenenodetype) ? `ExtractedSceneNode`\<`T`\> : `SceneNode`\>
+
+#### Type parameters
+
+| Name | Type |
+| :------ | :------ |
+| `T` | extends [`SceneNodeType`](types.md#scenenodetype) \| `undefined` = `undefined` |
+
+___
+
 ### SerializedResolvedNode
 
-Ƭ **SerializedResolvedNode**: `SerializedNode`\<`SceneNode`\> & \{ `ancestorsVisible?`: `boolean` ; `children?`: readonly [`SerializedResolvedNode`](types.md#serializedresolvednode)[]  }
+Ƭ **SerializedResolvedNode**\<`T`, `K`\>: `SerializedNode`\<`T` extends [`SceneNodeType`](types.md#scenenodetype) ? `K` extends [`SceneNodeKeys`](types.md#scenenodekeys)\<`T`\> ? `Pick`\<`ExtractedSceneNode`\<`T`\>, `K`\> : `ExtractedSceneNode`\<`T`\> : `SceneNode`\> & \{ `ancestorsVisible?`: `boolean` ; `children`: readonly [`SerializedResolvedNode`](types.md#serializedresolvednode)[]  }
+
+All nodes are serialized into this type before sending to the plugin UI.
+
+To
+
+#### Type parameters
+
+| Name | Type |
+| :------ | :------ |
+| `T` | extends [`SceneNodeType`](types.md#scenenodetype) \| `undefined` = `undefined` |
+| `K` | extends [`SceneNodeKeys`](types.md#scenenodekeys)\<`T`\> \| `undefined` = `undefined` |
 
 ___
 

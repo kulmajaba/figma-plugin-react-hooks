@@ -7,6 +7,13 @@ export { RPCOptions } from 'figma-plugin-api';
 export { FIGMA_MIXED } from './constants';
 
 /**
+ * Get all keys of a union type.
+ *
+ * Normally, `keyof` only returns the keys of the intersection of the union.
+ */
+export type KeysOfUnion<T> = T extends infer P ? keyof P : never;
+
+/**
  * @internal
  */
 export type FigmaSelectionListener = (selection: ReadonlyArray<SerializedResolvedNode>) => void;
@@ -23,13 +30,33 @@ export type SerializedNodeProperty<T> = T extends PluginAPI['mixed'] ? typeof FI
 /**
  * @internal
  */
-export type SerializedNode<T extends SceneNode> = {
+export type SerializedNode<T extends Partial<SceneNode>> = {
   [key in keyof T]: SerializedNodeProperty<T[key]>;
 };
 
-export type SerializedResolvedNode = SerializedNode<SceneNode> & {
+export type SceneNodeType = SceneNode['type'];
+type ExtractedSceneNode<T extends SceneNodeType> = Extract<SceneNode, { type: T }>;
+export type SceneNodeKeys<T extends SceneNodeType | undefined = undefined> = KeysOfUnion<
+  T extends SceneNodeType ? ExtractedSceneNode<T> : SceneNode
+>;
+
+/**
+ * All nodes are serialized into this type before sending to the plugin UI.
+ *
+ * To
+ */
+export type SerializedResolvedNode<
+  T extends SceneNodeType | undefined = undefined,
+  K extends SceneNodeKeys<T> | undefined = undefined
+> = SerializedNode<
+  T extends SceneNodeType
+    ? K extends SceneNodeKeys<T>
+      ? Pick<ExtractedSceneNode<T>, K>
+      : ExtractedSceneNode<T>
+    : SceneNode
+> & {
   ancestorsVisible?: boolean;
-  children?: readonly SerializedResolvedNode[];
+  children: readonly SerializedResolvedNode[];
 };
 
 // https://github.com/microsoft/TypeScript/issues/17002#issuecomment-1529056512
