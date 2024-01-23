@@ -8,5 +8,17 @@
     "outDir": "lib",
     "moduleResolution": "node",
     "skipLibCheck": true
+  },
+  "typedocOptions": {
+    "entryPoints": ["src/types.ts"],
+    "out": "docs-temp",
+    "plugin": ["typedoc-plugin-markdown"],
+    "disableSources": true,
+    "excludeInternal": true,
+    "hideInPageTOC": true,
+    "hideBreadcrumbs": true,
+    "readme": "none",
+    "sort": ["source-order"],
+    "entryDocument": "types.md"
   }
 }

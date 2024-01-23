@@ -1,5 +1,7 @@
 # figma-plugin-react-hooks
 
+<!--- Do not edit README.md, it is overwritten by the build script. Edit docs/index.md instead. -->
+
 Use Figma selection in your plugin UI via React hooks.
 
 Supports TypeScript.
@@ -76,3 +78,49 @@ export default SomeComponent;
 
 - Use rpcOptions when creating APIs
 - Make addParentChainVisibleProperty do stuff
+
+## Types
+
+### RPCOptions
+
+Ƭ **RPCOptions**: `Object`
+
+#### Type declaration
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `timeoutMs?` | `number` | Timeout in milliseconds Default: `3000` |
+| `pluginId?` | `string` | If your plugin UI is hosted (non-null origin), pluginId must be defined to allow messages to be sent |
+| `logicTargetOrigin?` | `string` | Specifies what the origin of the plugin UI must be for a message to be dispatched from plugin logic to UI If defined, add `http://localhost:<port>` to this field in your local environment to allow messaging while running on a dev server Default: `'*'` |
+| `uiTargetOrigin?` | `string` | Specifies what the origin of the plugin logic must be for a message to be dispatched from UI to plugin logic Usually `'https://www.figma.com'` Default: `'*'` |
+
+___
+
+### SerializedResolvedNode
+
+Ƭ **SerializedResolvedNode**: `SerializedNode`\<`SceneNode`\> & \{ `ancestorsVisible?`: `boolean` ; `children?`: readonly [`SerializedResolvedNode`](types.md#serializedresolvednode)[]  }
+
+___
+
+### FigmaSelectionHookOptions
+
+Ƭ **FigmaSelectionHookOptions**: `Object`
+
+#### Type declaration
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `nodeTypes?` | `ReadonlyArray`\<`SceneNode`[``"type"``]\> | Only return specific types of nodes. If left undefined, all nodes in the selection will be returned. Default: `undefined` |
+| `resolveChildrenNodes?` | `boolean` | Resolve children nodes of the selection. If used with `nodeTypes`, all nodes of the specified types will be returned as a flat array. Default: `false` |
+| `resolveProperties?` | `ReadonlyArray`\<`SceneNodePropertyKey`\> \| ``"all"`` | Figma node properties are lazy-loaded, so to use any property you have to resolve it first. Resolving all node properties causes a performance hit, so you can specify which properties you want to resolve. If set to `[]`, no properties will be resolved and you will only get the ids of the nodes. Node methods (such as `getPluginData`) will never be resolved. Default: `all` |
+| `resolveVariables?` | `boolean` | Resolve bound variables of the selection. Default: `false` |
+| `addAncestorsVisibleProperty?` | `boolean` | Add `ancestorsVisible` property to all nodes. This property is true if all ancestors of the node are visible. Default: `false` |
+| `apiOptions?` | [`RPCOptions`](types.md#rpcoptions) | Options for figma-plugin-api Default: see the RPCOptions type |
+
+## Variables
+
+### FIGMA\_MIXED
+
+• `Const` **FIGMA\_MIXED**: ``"57999e63-7384-42a1-acf8-d80b9f6c36a7"``
+
+Used to replace `figma.mixed` during JSON serialization

@@ -30,7 +30,7 @@
   ],
   "scripts": {
     "start": "npm run dev",
-    "build": "rm -rf lib/* && npm run build:index:common && npm run build:index:esm && npm run build:hook:common && npm run build:hook:esm && npm run build:types",
+    "build": "rm -rf lib/* && npm run build:index:common && npm run build:index:esm && npm run build:hook:common && npm run build:hook:esm && npm run build:types && npm run build:docs",
     "dev": "concurrently -n index-cjs,index-esm,hook-cjs,hook-esm,ts 'npm run build:index:common -- --watch' 'npm run build:index:esm -- --watch' 'npm run build:hook:common -- --watch' 'npm run build:hook:esm -- --watch' 'npm run build:types -- --watch'",
     "build:index": "esbuild src/index.ts --target=es2017 --sourcemap --bundle",
     "build:index:common": "npm run build:index -- --format=cjs --outfile=lib/index.cjs",
@@ -39,6 +39,7 @@
     "build:hook:common": "npm run build:hook -- --format=cjs --outfile=lib/hook.cjs",
     "build:hook:esm": "npm run build:hook -- --format=esm --outfile=lib/hook.mjs",
     "build:types": "tsc --emitDeclarationOnly --declaration --preserveWatchOutput",
+    "build:docs": "typedoc && cp docs/index.md docs-temp && node ./build.mjs",
     "prepublishOnly": "npm run build"
   },
   "author": "Mika Kuitunen",
@@ -64,6 +65,8 @@
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "prettier": "^3.0.3",
+    "typedoc": "^0.25.7",
+    "typedoc-plugin-markdown": "^3.17.1",
     "typescript": "^5.2.2"
   }
 }
