@@ -26,7 +26,12 @@ export type Mutable<T> = { -readonly [P in keyof T]: T[P] };
 /**
  * @internal
  */
-export type SerializedNodeProperty<T> = T extends PluginAPI['mixed'] ? typeof FIGMA_MIXED : T;
+export type SerializedNodeProperty<T> = T extends PluginAPI['mixed']
+  ? typeof FIGMA_MIXED
+  : T extends readonly SceneNode[]
+    ? readonly SerializedNode<T[number]>[]
+    : T;
+
 /**
  * @internal
  */
@@ -40,12 +45,7 @@ export type SceneNodeKeys<T extends SceneNodeType | undefined = undefined> = Key
   T extends SceneNodeType ? ExtractedSceneNode<T> : SceneNode
 >;
 
-/**
- * All nodes are serialized into this type before sending to the plugin UI.
- *
- * To
- */
-export type SerializedResolvedNode<
+type SerializedResolvedNodeBase<
   T extends SceneNodeType | undefined = undefined,
   K extends SceneNodeKeys<T> | undefined = undefined
 > = SerializedNode<
@@ -54,10 +54,22 @@ export type SerializedResolvedNode<
       ? Pick<ExtractedSceneNode<T>, K>
       : ExtractedSceneNode<T>
     : SceneNode
-> & {
-  ancestorsVisible?: boolean;
-  children: readonly SerializedResolvedNode[];
+>;
+
+type AncestorsVisibleMixin = {
+  ancestorsVisible: boolean;
 };
+
+/**
+ * All nodes are serialized into this type before sending to the plugin UI.
+ *
+ * To
+ */
+export type SerializedResolvedNode<
+  A extends boolean = false,
+  T extends SceneNodeType | undefined = undefined,
+  K extends SceneNodeKeys<T> | undefined = undefined
+> = A extends true ? SerializedResolvedNodeBase<T, K> & AncestorsVisibleMixin : SerializedResolvedNodeBase<T, K>;
 
 // https://github.com/microsoft/TypeScript/issues/17002#issuecomment-1529056512
 type ArrayType<T> = Extract<true extends T & false ? unknown[] : T extends readonly unknown[] ? T : unknown[], T>;

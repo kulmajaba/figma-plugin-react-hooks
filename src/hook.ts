@@ -9,10 +9,11 @@ import { FigmaSelectionHookOptions, SceneNodeKeys, SerializedResolvedNode } from
 export { FigmaSelectionHookOptions } from './types';
 export { FIGMA_MIXED } from './constants';
 
-type FigmaSelectionReturnType<T extends SceneNode['type'], K extends SceneNodeKeys<T>> = [
-  ReadonlyArray<SerializedResolvedNode<T, K>>,
-  (selection: ReadonlyArray<SceneNode>) => void
-];
+type FigmaSelectionReturnType<
+  A extends boolean,
+  T extends SceneNode['type'] | undefined,
+  K extends SceneNodeKeys<T> | undefined
+> = [ReadonlyArray<SerializedResolvedNode<A, T, K>>, (selection: ReadonlyArray<SceneNode>) => void];
 
 const defaultOptions: Required<Omit<FigmaSelectionHookOptions, 'nodeTypes' | 'apiOptions'>> = {
   resolveChildrenNodes: false,
@@ -24,9 +25,13 @@ const defaultOptions: Required<Omit<FigmaSelectionHookOptions, 'nodeTypes' | 'ap
 /**
  * Only one config will take presence and it will be the config of the first hook that is mounted
  */
-const useFigmaSelection = <T extends SceneNode['type'], K extends SceneNodeKeys<T>>(
+const useFigmaSelection = <
+  A extends boolean,
+  T extends SceneNode['type'] | undefined = undefined,
+  K extends SceneNodeKeys<T> | undefined = undefined
+>(
   hookOptions?: FigmaSelectionHookOptions
-): FigmaSelectionReturnType<T, K> => {
+): FigmaSelectionReturnType<A, T, K> => {
   const opts = { ...defaultOptions, ...hookOptions };
 
   const [selection, setSelection] = useState<ReadonlyArray<SerializedResolvedNode>>([]);
@@ -62,7 +67,7 @@ const useFigmaSelection = <T extends SceneNode['type'], K extends SceneNodeKeys<
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return [selection as ReadonlyArray<SerializedResolvedNode<T>>, api._setSelection];
+  return [selection as ReadonlyArray<SerializedResolvedNode<A, T, K>>, api._setSelection];
 };
 
 export default useFigmaSelection;
