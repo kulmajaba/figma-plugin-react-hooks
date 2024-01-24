@@ -6,6 +6,9 @@ import { FIGMA_MIXED } from './constants';
 export { RPCOptions } from 'figma-plugin-api';
 export { FIGMA_MIXED } from './constants';
 
+export type ArrayElementOrUnknown<ArrayType extends readonly unknown[] | undefined> =
+  ArrayType extends readonly unknown[] ? ArrayType[number] : undefined;
+
 /**
  * Get all keys of a union type.
  *
@@ -16,48 +19,88 @@ export type KeysOfUnion<T> = T extends infer P ? keyof P : never;
 /**
  * @internal
  */
-export type FigmaSelectionListener = (selection: ReadonlyArray<SerializedResolvedNode>) => void;
-
-/**
- * @internal
- */
 export type Mutable<T> = { -readonly [P in keyof T]: T[P] };
 
 /**
+ * Gets all property keys of an object that are not functions.
+ *
+ * When given a union type, it will return all possible property names from the union types.
+ */
+type NonFunctionPropertyKeys<T extends object> = {
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  [K in KeysOfUnion<T>]: T[K] extends Function ? never : K;
+}[KeysOfUnion<T>];
+
+type BareNode = {
+  id: string;
+};
+
+/**
  * @internal
  */
-export type SerializedNodeProperty<T> = T extends PluginAPI['mixed']
+export type FigmaSelectionListener = (selection: ReadonlyArray<SerializedResolvedNode>) => void;
+
+export type SceneNodeType = SceneNode['type'];
+
+/**
+ * Utility type to get only matching node types from the SceneNode union type.
+ */
+export type ExtractedSceneNode<T extends SceneNodeType> = Extract<SceneNode, { type: T }>;
+
+export type SceneNodePropertyKey<T extends SceneNodeType | undefined = undefined> = NonFunctionPropertyKeys<
+  T extends SceneNodeType ? ExtractedSceneNode<T> : SceneNode
+>;
+
+/**
+ * @internal
+ * @typeParam T - Node property
+ * @typeParam C - Children nodes resolved
+ */
+type SerializedNodeProperty<T, C extends boolean> = T extends PluginAPI['mixed']
   ? typeof FIGMA_MIXED
   : T extends readonly SceneNode[]
-    ? readonly SerializedNode<T[number]>[]
+    ? C extends true
+      ? readonly SerializedNode<T[number]>[]
+      : readonly BareNode[]
     : T;
 
 /**
  * @internal
+ * @typeParam T - Node
+ * @typeParam C - Children nodes resolved
  */
-export type SerializedNode<T extends Partial<SceneNode>> = {
-  [key in keyof T]: SerializedNodeProperty<T[key]>;
+export type SerializedNode<T extends Partial<SceneNode>, C extends boolean = false> = {
+  [key in keyof T]: SerializedNodeProperty<T[key], C>;
 };
 
-export type SceneNodeType = SceneNode['type'];
-type ExtractedSceneNode<T extends SceneNodeType> = Extract<SceneNode, { type: T }>;
-export type SceneNodeKeys<T extends SceneNodeType | undefined = undefined> = KeysOfUnion<
-  T extends SceneNodeType ? ExtractedSceneNode<T> : SceneNode
->;
-
+/**
+ * @internal
+ * @typeParam T - Node types
+ * @typeParam K - Node properties to resolve
+ */
 type SerializedResolvedNodeBase<
   T extends SceneNodeType | undefined = undefined,
-  K extends SceneNodeKeys<T> | undefined = undefined
+  K extends SceneNodePropertyKey<T> | undefined = undefined
 > = SerializedNode<
   T extends SceneNodeType
-    ? K extends SceneNodeKeys<T>
+    ? K extends SceneNodePropertyKey<T>
       ? Pick<ExtractedSceneNode<T>, K>
       : ExtractedSceneNode<T>
     : SceneNode
 >;
 
+type Test2_1 = SerializedResolvedNodeBase<'FRAME' | 'TEXT', 'id' | 'children' | 'characters'>;
+type Test2_1 = SerializedResolvedNodeBase<'FRAME', 'children'>;
+type Test2_3 = SerializedResolvedNodeBase<'TEXT', 'characters'>;
+type Test2_4 = SerializedResolvedNodeBase<'FRAME' | 'TEXT'>;
+type Test2_5 = Extract<Test2_1, { type: 'FRAME' }>;
+
 type AncestorsVisibleMixin = {
   ancestorsVisible: boolean;
+};
+
+type ResolveVariablesMixin = {
+  boundVariableInstances: readonly Variable[];
 };
 
 /**
@@ -67,43 +110,14 @@ type AncestorsVisibleMixin = {
  */
 export type SerializedResolvedNode<
   A extends boolean = false,
+  V extends boolean = false,
   T extends SceneNodeType | undefined = undefined,
-  K extends SceneNodeKeys<T> | undefined = undefined
-> = A extends true ? SerializedResolvedNodeBase<T, K> & AncestorsVisibleMixin : SerializedResolvedNodeBase<T, K>;
-
-// https://github.com/microsoft/TypeScript/issues/17002#issuecomment-1529056512
-type ArrayType<T> = Extract<true extends T & false ? unknown[] : T extends readonly unknown[] ? T : unknown[], T>;
-/**
- * @internal
- */
-export const isArray = Array.isArray as <T>(arg: T) => arg is ArrayType<T>;
-
-/**
- * @internal
- */
-export const isStrictObject = (arg: unknown): arg is Record<string | number, unknown> => {
-  return arg != undefined && typeof arg === 'object' && arg.constructor === Object;
-};
-
-/**
- * @internal
- */
-export const strictObjectKeys = Object.keys as <T extends object>(obj: T) => Array<keyof T>;
-
-/**
- * @internal
- */
-export const nodeCanHaveChildren = <T extends SceneNode>(node: T): node is T & ChildrenMixin => {
-  return 'children' in node;
-};
-
-// eslint-disable-next-line @typescript-eslint/ban-types
-type NonFunctionPropertyNames<T> = { [K in keyof T]: T[K] extends Function ? never : K }[keyof T];
-
-/**
- * @internal
- */
-export type SceneNodePropertyKey = NonFunctionPropertyNames<SceneNode>;
+  K extends SceneNodePropertyKey<T> | undefined = undefined
+> = A extends true
+  ? V extends true
+    ? SerializedResolvedNodeBase<T, K> & AncestorsVisibleMixin & ResolveVariablesMixin
+    : SerializedResolvedNodeBase<T, K> & AncestorsVisibleMixin
+  : SerializedResolvedNodeBase<T, K>;
 
 export type FigmaSelectionHookOptions = {
   /**
@@ -165,3 +179,29 @@ export type ResolverOptions = Readonly<
     'nodeTypes' | 'resolveChildrenNodes' | 'resolveProperties' | 'resolveVariables' | 'addAncestorsVisibleProperty'
   >
 >;
+
+// https://github.com/microsoft/TypeScript/issues/17002#issuecomment-1529056512
+type ArrayType<T> = Extract<true extends T & false ? unknown[] : T extends readonly unknown[] ? T : unknown[], T>;
+/**
+ * @internal
+ */
+export const isArray = Array.isArray as <T>(arg: T) => arg is ArrayType<T>;
+
+/**
+ * @internal
+ */
+export const isStrictObject = (arg: unknown): arg is Record<string | number, unknown> => {
+  return arg != undefined && typeof arg === 'object' && arg.constructor === Object;
+};
+
+/**
+ * @internal
+ */
+export const strictObjectKeys = Object.keys as <T extends object>(obj: T) => Array<keyof T>;
+
+/**
+ * @internal
+ */
+export const nodeCanHaveChildren = <T extends SceneNode>(node: T): node is T & ChildrenMixin => {
+  return 'children' in node;
+};

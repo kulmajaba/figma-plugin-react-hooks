@@ -7,7 +7,8 @@
     "types": ["@figma/plugin-typings"],
     "outDir": "lib",
     "moduleResolution": "node",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noErrorTruncation": true
   },
   "typedocOptions": {
     "entryPoints": ["src/types.ts"],
