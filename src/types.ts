@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { RPCOptions } from 'figma-plugin-api';
@@ -29,12 +30,11 @@ export type Mutable<T> = { -readonly [P in keyof T]: T[P] };
  * When given a union type, it will return all possible property names from the union types.
  */
 type NonFunctionPropertyKeys<T extends object> = {
-  // eslint-disable-next-line @typescript-eslint/ban-types
   [K in KeysOfUnion<T>]: T[K] extends Function ? never : K;
 }[KeysOfUnion<T>];
 
-type BareNode = {
-  id: string;
+export type BareNode = {
+  id: SceneNode['id'];
 };
 
 /**
@@ -53,24 +53,38 @@ export type SceneNodePropertyKey<T extends SceneNodeType | undefined = undefined
   T extends SceneNodeType ? ExtractedSceneNode<T> : SceneNode
 >;
 
-type ApplicablePropertyKey<T extends object, K extends string | number | symbol> = K extends keyof T ? K : never;
+type ApplicableNonFunctionPropertyKey<T extends object, K extends string | number | symbol> = K extends keyof T
+  ? T[K] extends Function
+    ? never
+    : K
+  : never;
 
 /**
  * @internal
- * @typeParam T - Node property
+ * @typeParam P - Node property
+ * @typeParam T - Node
+ * @typeParam K - Node properties to resolve
  * @typeParam C - Children nodes resolved
  */
-type SerializedNodeProperty<T, C extends boolean> = T extends PluginAPI['mixed']
+// TODO: add A and V
+// TODO: Narrow children type to only the types that were configured
+type SerializedNodeProperty<
+  P,
+  T extends SceneNode,
+  K extends KeysOfUnion<SceneNode>,
+  C extends boolean
+> = T extends PluginAPI['mixed']
   ? typeof FIGMA_MIXED
-  : T extends readonly SceneNode[]
+  : P extends readonly SceneNode[]
     ? C extends true
-      ? readonly SerializedNode<T[number]>[]
+      ? readonly SerializedNode<T, K, C>[]
       : readonly BareNode[]
-    : T;
+    : P;
 
 /**
  * @internal
  * @typeParam T - Node
+ * @typeParam K - Node properties to resolve
  * @typeParam C - Children nodes resolved
  */
 export type SerializedNode<
@@ -79,36 +93,39 @@ export type SerializedNode<
   C extends boolean = false
 > = T extends SceneNode
   ? {
-      [key in ApplicablePropertyKey<T, K>]: SerializedNodeProperty<T[key], C>;
+      type: T['type'];
+      id: T['id'];
+    } & {
+      [key in ApplicableNonFunctionPropertyKey<T, K>]: SerializedNodeProperty<T[key], T, K, C>;
     }
   : never;
 
 type Test1_0 = SerializedNode<FrameNode>;
-type Test1_1 = SerializedNode<TextNode, 'children' | 'id' | 'characters'>;
-type Test1_2 = SerializedNode<FrameNode, 'children' | 'id' | 'characters'>;
+type Test1_1 = SerializedNode<TextNode, 'children' | 'characters'>;
+type Test1_2 = SerializedNode<FrameNode, 'children' | 'characters'>;
 // @ts-expect-error - 'characters' is not a property of FrameNode
 type Test1_4 = Test1_2['characters'];
-
-type Test1_3 = SerializedNode<FrameNode | TextNode, 'children' | 'id' | 'characters'>;
+type Test1_3 = SerializedNode<FrameNode | TextNode, 'name' | 'characters'>;
+type Test1_5 = SerializedNode<FrameNode, 'children', true>;
 
 /**
  * @internal
- * @typeParam T - Node types
+ * @typeParam T - Node
  * @typeParam K - Node properties to resolve
+ * @typeParam C - Children nodes resolved
  */
 type SerializedResolvedNodeBase<
-  T extends SceneNodeType | undefined = undefined,
-  K extends KeysOfUnion<T> | undefined = undefined
-> = K extends keyof T
-  ? SerializedNode<T extends SceneNodeType ? ExtractedSceneNode<T> : SceneNode, K>
-  : SerializedNode<T extends SceneNodeType ? ExtractedSceneNode<T> : SceneNode>;
+  T extends SceneNode,
+  K extends KeysOfUnion<SceneNode> = KeysOfUnion<T>,
+  C extends boolean = false
+> = T extends SceneNode ? SerializedNode<T, K, C> : never;
 
-type Test2_0 = SerializedResolvedNodeBase<'FRAME'>;
-type Test2_1 = SerializedResolvedNodeBase<'FRAME' | 'TEXT', 'id' | 'children' | 'characters'>;
-type Test2_2 = SerializedResolvedNodeBase<'FRAME', 'children'>;
-type Test2_3 = SerializedResolvedNodeBase<'TEXT', 'characters'>;
-type Test2_4 = SerializedResolvedNodeBase<'FRAME' | 'TEXT'>;
+type Test2_1 = SerializedResolvedNodeBase<FrameNode | TextNode, 'children' | 'characters'>;
+type Test2_2 = SerializedResolvedNodeBase<FrameNode, 'children'>;
+type Test2_3 = SerializedResolvedNodeBase<TextNode, 'characters'>;
+type Test2_4 = SerializedResolvedNodeBase<FrameNode | TextNode>;
 type Test2_5 = Extract<Test2_1, { type: 'FRAME' }>;
+type Test2_6 = Extract<Test2_1, { type: 'TEXT' }>;
 
 type AncestorsVisibleMixin = {
   ancestorsVisible: boolean;
@@ -121,18 +138,30 @@ type ResolveVariablesMixin = {
 /**
  * All nodes are serialized into this type before sending to the plugin UI.
  *
- * To
+ * @typeParam T - Node
+ * @typeParam K - Node properties to resolve
+ * @typeParam C - Children nodes resolved
+ * @typeParam A - Add `ancestorsVisible` property to all nodes
+ * @typeParam V - Resolve bound variables of the selection
  */
 export type SerializedResolvedNode<
+  T extends SceneNode = SceneNode,
+  K extends KeysOfUnion<SceneNode> = KeysOfUnion<T>,
+  C extends boolean = false,
   A extends boolean = false,
-  V extends boolean = false,
-  T extends SceneNodeType | undefined = undefined,
-  K extends SceneNodePropertyKey<T> | undefined = undefined
+  V extends boolean = false
 > = A extends true
   ? V extends true
-    ? SerializedResolvedNodeBase<T, K> & AncestorsVisibleMixin & ResolveVariablesMixin
-    : SerializedResolvedNodeBase<T, K> & AncestorsVisibleMixin
-  : SerializedResolvedNodeBase<T, K>;
+    ? SerializedResolvedNodeBase<T, K, C> & AncestorsVisibleMixin & ResolveVariablesMixin
+    : SerializedResolvedNodeBase<T, K, C> & AncestorsVisibleMixin
+  : SerializedResolvedNodeBase<T, K, C>;
+
+type Test3_1 = SerializedResolvedNode<FrameNode | TextNode, 'children' | 'characters', true>;
+type Test3_2 = SerializedResolvedNode<FrameNode, 'children'>;
+type Test3_3 = SerializedResolvedNode<TextNode, 'characters'>;
+type Test3_4 = SerializedResolvedNode<FrameNode | TextNode>;
+type Test3_5 = Extract<Test3_1, { type: 'FRAME' }>;
+type Test3_6 = Extract<Test3_1, { type: 'TEXT' }>;
 
 export type FigmaSelectionHookOptions = {
   /**
