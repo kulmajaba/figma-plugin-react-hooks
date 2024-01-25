@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { RPCOptions } from 'figma-plugin-api';
 
 import { FIGMA_MIXED } from './constants';
@@ -51,6 +53,8 @@ export type SceneNodePropertyKey<T extends SceneNodeType | undefined = undefined
   T extends SceneNodeType ? ExtractedSceneNode<T> : SceneNode
 >;
 
+type ApplicablePropertyKey<T extends object, K extends string | number | symbol> = K extends keyof T ? K : never;
+
 /**
  * @internal
  * @typeParam T - Node property
@@ -69,9 +73,23 @@ type SerializedNodeProperty<T, C extends boolean> = T extends PluginAPI['mixed']
  * @typeParam T - Node
  * @typeParam C - Children nodes resolved
  */
-export type SerializedNode<T extends Partial<SceneNode>, C extends boolean = false> = {
-  [key in keyof T]: SerializedNodeProperty<T[key], C>;
-};
+export type SerializedNode<
+  T extends SceneNode,
+  K extends KeysOfUnion<SceneNode> = KeysOfUnion<T>,
+  C extends boolean = false
+> = T extends SceneNode
+  ? {
+      [key in ApplicablePropertyKey<T, K>]: SerializedNodeProperty<T[key], C>;
+    }
+  : never;
+
+type Test1_0 = SerializedNode<FrameNode>;
+type Test1_1 = SerializedNode<TextNode, 'children' | 'id' | 'characters'>;
+type Test1_2 = SerializedNode<FrameNode, 'children' | 'id' | 'characters'>;
+// @ts-expect-error - 'characters' is not a property of FrameNode
+type Test1_4 = Test1_2['characters'];
+
+type Test1_3 = SerializedNode<FrameNode | TextNode, 'children' | 'id' | 'characters'>;
 
 /**
  * @internal
@@ -80,17 +98,14 @@ export type SerializedNode<T extends Partial<SceneNode>, C extends boolean = fal
  */
 type SerializedResolvedNodeBase<
   T extends SceneNodeType | undefined = undefined,
-  K extends SceneNodePropertyKey<T> | undefined = undefined
-> = SerializedNode<
-  T extends SceneNodeType
-    ? K extends SceneNodePropertyKey<T>
-      ? Pick<ExtractedSceneNode<T>, K>
-      : ExtractedSceneNode<T>
-    : SceneNode
->;
+  K extends KeysOfUnion<T> | undefined = undefined
+> = K extends keyof T
+  ? SerializedNode<T extends SceneNodeType ? ExtractedSceneNode<T> : SceneNode, K>
+  : SerializedNode<T extends SceneNodeType ? ExtractedSceneNode<T> : SceneNode>;
 
+type Test2_0 = SerializedResolvedNodeBase<'FRAME'>;
 type Test2_1 = SerializedResolvedNodeBase<'FRAME' | 'TEXT', 'id' | 'children' | 'characters'>;
-type Test2_1 = SerializedResolvedNodeBase<'FRAME', 'children'>;
+type Test2_2 = SerializedResolvedNodeBase<'FRAME', 'children'>;
 type Test2_3 = SerializedResolvedNodeBase<'TEXT', 'characters'>;
 type Test2_4 = SerializedResolvedNodeBase<'FRAME' | 'TEXT'>;
 type Test2_5 = Extract<Test2_1, { type: 'FRAME' }>;
