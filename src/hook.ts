@@ -8,25 +8,21 @@ import {
   ArrayElement,
   ArrayElementOrUndefined,
   BareNode,
-  ExtractedSceneNode,
   FigmaSelectionHookOptions,
   FigmaSelectionListener,
-  KeysOfUnion,
+  NonFunctionPropertyKeys,
   RPCOptions,
   SceneNodePropertyKey,
-  SerializedResolvedNode
+  SerializedResolvedNode,
+  SceneNodeFromTypes
 } from './types';
 
 export { FigmaSelectionHookOptions } from './types';
 export { FIGMA_MIXED } from './constants';
 
-type SceneNodeFromTypes<T extends readonly SceneNode['type'][] | undefined> = T extends undefined
-  ? SceneNode
-  : ExtractedSceneNode<ArrayElement<T>>;
-
 type FigmaSelectionReturnType<
   T extends SceneNode = SceneNode,
-  K extends KeysOfUnion<SceneNode> = KeysOfUnion<T>,
+  K extends NonFunctionPropertyKeys<T> = NonFunctionPropertyKeys<T>,
   C extends boolean = false,
   A extends boolean = false,
   V extends boolean = false
@@ -35,14 +31,14 @@ type FigmaSelectionReturnType<
 interface UseFigmaSelection {
   <
     T extends readonly SceneNode['type'][] | undefined = undefined,
-    K extends SceneNodePropertyKey<ArrayElementOrUndefined<T>> | undefined = undefined,
+    K extends SceneNodePropertyKey<ArrayElementOrUndefined<T>> = SceneNodePropertyKey<ArrayElementOrUndefined<T>>,
     C extends boolean = false,
     A extends boolean = false,
     V extends boolean = false
   >(hookOptions?: {
     nodeTypes?: T;
     resolveChildrenNodes?: C;
-    resolveProperties?: ReadonlyArray<SceneNodePropertyKey<ArrayElementOrUndefined<T>>> | 'all';
+    resolveProperties?: K;
     resolveVariables?: V;
     addAncestorsVisibleProperty?: A;
     apiOptions?: RPCOptions;
@@ -61,17 +57,34 @@ const defaultOptions: Required<Omit<FigmaSelectionHookOptions, 'nodeTypes' | 'ap
  */
 const useFigmaSelection: UseFigmaSelection = <
   T extends readonly SceneNode['type'][] | undefined = undefined,
-  K extends SceneNodePropertyKey<ArrayElementOrUndefined<T>> | undefined = undefined,
+  K extends SceneNodePropertyKey<ArrayElementOrUndefined<T>> | 'all' = 'all',
   C extends boolean = false,
   A extends boolean = false,
   V extends boolean = false
->(
-  hookOptions?: FigmaSelectionHookOptions
-): FigmaSelectionReturnType<SceneNodeFromTypes<T>, K, C, A, V> => {
+>(hookOptions?: {
+  nodeTypes?: T;
+  resolveChildrenNodes?: C;
+  resolveProperties?: K;
+  resolveVariables?: V;
+  addAncestorsVisibleProperty?: A;
+  apiOptions?: RPCOptions;
+}): FigmaSelectionReturnType<
+  SceneNodeFromTypes<T>,
+  K extends 'all' ? SceneNodePropertyKey<ArrayElementOrUndefined<T>> : K,
+  C,
+  A,
+  V
+> => {
   const opts = { ...defaultOptions, ...hookOptions };
 
   type SelectionHookType = ReadonlyArray<
-    SerializedResolvedNode<T extends undefined ? SceneNode : ArrayElement<T>, K, C, A, V>
+    SerializedResolvedNode<
+      T extends undefined ? SceneNode : ArrayElement<T>,
+      K extends 'all' ? SceneNodePropertyKey<ArrayElementOrUndefined<T>> : K,
+      C,
+      A,
+      V
+    >
   >;
 
   const [selection, setSelection] = useState<SelectionHookType>([]);

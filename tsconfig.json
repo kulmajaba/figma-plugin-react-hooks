@@ -8,7 +8,7 @@
     "outDir": "lib",
     "moduleResolution": "node",
     "skipLibCheck": true,
-    "noErrorTruncation": true
+    "noErrorTruncation": false
   },
   "typedocOptions": {
     "entryPoints": ["src/types.ts"],

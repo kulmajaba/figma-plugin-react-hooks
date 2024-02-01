@@ -31,7 +31,7 @@ export type Mutable<T> = { -readonly [P in keyof T]: T[P] };
  *
  * When given a union type, it will return all possible property names from the union types.
  */
-type NonFunctionPropertyKeys<T extends object> = {
+export type NonFunctionPropertyKeys<T extends object> = {
   [K in KeysOfUnion<T>]: T[K] extends Function ? never : K;
 }[KeysOfUnion<T>];
 
@@ -45,6 +45,10 @@ export type BareNode = {
 export type FigmaSelectionListener = (selection: ReadonlyArray<SerializedResolvedNode>) => void;
 
 export type SceneNodeType = SceneNode['type'];
+
+export type SceneNodeFromTypes<T extends readonly SceneNodeType[] | undefined> = T extends readonly SceneNodeType[]
+  ? ExtractedSceneNode<ArrayElement<T>>
+  : SceneNode;
 
 /**
  * Utility type to get only matching node types from the SceneNode union type.
@@ -73,7 +77,7 @@ type ApplicableNonFunctionPropertyKey<T extends object, K extends string | numbe
 type SerializedNodeProperty<
   P,
   T extends SceneNode,
-  K extends KeysOfUnion<SceneNode>,
+  K extends NonFunctionPropertyKeys<T>,
   C extends boolean
 > = T extends PluginAPI['mixed']
   ? typeof FIGMA_MIXED
@@ -91,7 +95,7 @@ type SerializedNodeProperty<
  */
 export type SerializedNode<
   T extends SceneNode,
-  K extends KeysOfUnion<SceneNode> = KeysOfUnion<T>,
+  K extends NonFunctionPropertyKeys<SceneNode> = NonFunctionPropertyKeys<T>,
   C extends boolean = false
 > = T extends SceneNode
   ? {
@@ -118,7 +122,7 @@ type Test1_5 = SerializedNode<FrameNode, 'children', true>;
  */
 type SerializedResolvedNodeBase<
   T extends SceneNode,
-  K extends KeysOfUnion<SceneNode> = KeysOfUnion<T>,
+  K extends NonFunctionPropertyKeys<SceneNode> = NonFunctionPropertyKeys<T>,
   C extends boolean = false
 > = T extends SceneNode ? SerializedNode<T, K, C> : never;
 
@@ -148,7 +152,7 @@ type ResolveVariablesMixin = {
  */
 export type SerializedResolvedNode<
   T extends SceneNode = SceneNode,
-  K extends KeysOfUnion<SceneNode> = KeysOfUnion<T>,
+  K extends NonFunctionPropertyKeys<SceneNode> = NonFunctionPropertyKeys<T>,
   C extends boolean = false,
   A extends boolean = false,
   V extends boolean = false

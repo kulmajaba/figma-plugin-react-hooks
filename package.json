@@ -38,7 +38,7 @@
     "build:hook": "esbuild src/hook.ts --target=es2017 --sourcemap --bundle --external:react",
     "build:hook:common": "npm run build:hook -- --format=cjs --outfile=lib/hook.cjs",
     "build:hook:esm": "npm run build:hook -- --format=esm --outfile=lib/hook.mjs",
-    "build:types": "tsc --emitDeclarationOnly --declaration --preserveWatchOutput",
+    "build:types": "tsc --emitDeclarationOnly --declaration",
     "build:docs": "typedoc && cp docs/index.md docs-temp && node ./build-docs.mjs",
     "prepublishOnly": "npm run build"
   },
