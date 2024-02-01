@@ -5,9 +5,13 @@ import useMountedEffect from './useMountedEffect';
 import { api, listeners, setlisteners } from '.';
 
 import {
-  ArrayElementOrUnknown,
+  ArrayElement,
+  ArrayElementOrUndefined,
+  BareNode,
+  ExtractedSceneNode,
   FigmaSelectionHookOptions,
   FigmaSelectionListener,
+  KeysOfUnion,
   RPCOptions,
   SceneNodePropertyKey,
   SerializedResolvedNode
@@ -16,33 +20,33 @@ import {
 export { FigmaSelectionHookOptions } from './types';
 export { FIGMA_MIXED } from './constants';
 
-type FigmaSelectionReturnType<
-  A extends boolean,
-  V extends boolean,
-  T extends readonly SceneNode['type'][] | undefined = undefined,
-  K extends SceneNodePropertyKey<ArrayElementOrUnknown<T>> | undefined = undefined
-> = [
-  ReadonlyArray<SerializedResolvedNode<A, V, ArrayElementOrUnknown<T>, K>>,
-  (selection: ReadonlyArray<SceneNode>) => void
-];
+type SceneNodeFromTypes<T extends readonly SceneNode['type'][] | undefined> = T extends undefined
+  ? SceneNode
+  : ExtractedSceneNode<ArrayElement<T>>;
 
-type Test = FigmaSelectionReturnType<false, false, ['FRAME'], 'children' | 'fills'>;
-type Test2 = Test[0][number];
+type FigmaSelectionReturnType<
+  T extends SceneNode = SceneNode,
+  K extends KeysOfUnion<SceneNode> = KeysOfUnion<T>,
+  C extends boolean = false,
+  A extends boolean = false,
+  V extends boolean = false
+> = [ReadonlyArray<SerializedResolvedNode<T, K, C, A, V>>, <N extends BareNode>(selection: ReadonlyArray<N>) => void];
 
 interface UseFigmaSelection {
   <
-    A extends boolean = false,
-    V extends boolean = false,
     T extends readonly SceneNode['type'][] | undefined = undefined,
-    K extends SceneNodePropertyKey<ArrayElementOrUnknown<T>> | undefined = undefined
+    K extends SceneNodePropertyKey<ArrayElementOrUndefined<T>> | undefined = undefined,
+    C extends boolean = false,
+    A extends boolean = false,
+    V extends boolean = false
   >(hookOptions?: {
     nodeTypes?: T;
-    resolveChildrenNodes?: boolean;
-    resolveProperties?: ReadonlyArray<SceneNodePropertyKey<ArrayElementOrUnknown<T>>> | 'all';
+    resolveChildrenNodes?: C;
+    resolveProperties?: ReadonlyArray<SceneNodePropertyKey<ArrayElementOrUndefined<T>>> | 'all';
     resolveVariables?: V;
     addAncestorsVisibleProperty?: A;
     apiOptions?: RPCOptions;
-  }): FigmaSelectionReturnType<A, V, T, K>;
+  }): FigmaSelectionReturnType<SceneNodeFromTypes<T>, K, C, A, V>;
 }
 
 const defaultOptions: Required<Omit<FigmaSelectionHookOptions, 'nodeTypes' | 'apiOptions'>> = {
@@ -56,18 +60,21 @@ const defaultOptions: Required<Omit<FigmaSelectionHookOptions, 'nodeTypes' | 'ap
  * Only one config will take presence and it will be the config of the first hook that is mounted
  */
 const useFigmaSelection: UseFigmaSelection = <
-  A extends boolean = false,
-  V extends boolean = false,
   T extends readonly SceneNode['type'][] | undefined = undefined,
-  K extends SceneNodePropertyKey<ArrayElementOrUnknown<T>> | undefined = undefined
+  K extends SceneNodePropertyKey<ArrayElementOrUndefined<T>> | undefined = undefined,
+  C extends boolean = false,
+  A extends boolean = false,
+  V extends boolean = false
 >(
   hookOptions?: FigmaSelectionHookOptions
-): FigmaSelectionReturnType<A, V, T, K> => {
+): FigmaSelectionReturnType<SceneNodeFromTypes<T>, K, C, A, V> => {
   const opts = { ...defaultOptions, ...hookOptions };
 
-  const [selection, setSelection] = useState<ReadonlyArray<SerializedResolvedNode<A, V, ArrayElementOrUnknown<T>, K>>>(
-    []
-  );
+  type SelectionHookType = ReadonlyArray<
+    SerializedResolvedNode<T extends undefined ? SceneNode : ArrayElement<T>, K, C, A, V>
+  >;
+
+  const [selection, setSelection] = useState<SelectionHookType>([]);
 
   useMountedEffect(() => {
     console.warn('useFigmaSelection: changing options once mounted will not affect the behavior of the hook');

@@ -9,8 +9,10 @@ import { FIGMA_MIXED } from './constants';
 export { RPCOptions } from 'figma-plugin-api';
 export { FIGMA_MIXED } from './constants';
 
-export type ArrayElementOrUnknown<ArrayType extends readonly unknown[] | undefined> =
+export type ArrayElementOrUndefined<ArrayType extends readonly unknown[] | undefined> =
   ArrayType extends readonly unknown[] ? ArrayType[number] : undefined;
+
+export type ArrayElement<ArrayType extends readonly unknown[]> = ArrayType[number];
 
 /**
  * Get all keys of a union type.
