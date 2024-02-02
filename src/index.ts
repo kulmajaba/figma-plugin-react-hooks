@@ -3,6 +3,7 @@ import { createUIAPI, createPluginAPI } from 'figma-plugin-api';
 import { resolveAndFilterNodes } from './utils';
 
 import {
+  BareNode,
   FigmaSelectionHookOptions,
   FigmaSelectionListener,
   SerializedResolvedNode,
@@ -78,8 +79,8 @@ export const api = createPluginAPI({
     figma.off('selectionchange', selectionChangeHandler);
     figma.off('documentchange', documentChangeHandler);
   },
-  _setSelection(newSelection: ReadonlyArray<SceneNode>) {
-    figma.currentPage.selection = newSelection;
+  _setSelection<N extends readonly BareNode[]>(newSelection: N) {
+    figma.currentPage.selection = newSelection as unknown as readonly SceneNode[];
   }
 });
 
