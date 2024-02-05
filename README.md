@@ -96,9 +96,9 @@ export default SomeComponent;
 
 ___
 
-### SerializedResolvedNode
+### OptSceneNodeProperties
 
-Ƭ **SerializedResolvedNode**: `SerializedNode`\<`SceneNode`\> & \{ `ancestorsVisible?`: `boolean` ; `children?`: readonly [`SerializedResolvedNode`](types.md#serializedresolvednode)[]  }
+Ƭ **OptSceneNodeProperties**: readonly `SceneNodePropertyKey`[] \| ``"all"``
 
 ___
 
@@ -106,13 +106,26 @@ ___
 
 Ƭ **FigmaSelectionHookOptions**: `Object`
 
+Use `satisfies` (for TS >= 4.9) with this type to allow for type checking the options object
+while the type of the object remains exact.
+
+This allows us to infer the type of the returned nodes correctly.
+
+Example:
+```typescript
+const options = {
+  nodeTypes: ['TEXT', 'FRAME'],
+  resolveProperties: ['name', 'characters', 'children]
+} satisfies FigmaSelectionHookOptions;
+```
+
 #### Type declaration
 
 | Name | Type | Description |
 | :------ | :------ | :------ |
-| `nodeTypes?` | `ReadonlyArray`\<`SceneNode`[``"type"``]\> | Only return specific types of nodes. If left undefined, all nodes in the selection will be returned. Default: `undefined` |
-| `resolveChildrenNodes?` | `boolean` | Resolve children nodes of the selection. If used with `nodeTypes`, all nodes of the specified types will be returned as a flat array. Default: `false` |
-| `resolveProperties?` | `ReadonlyArray`\<`SceneNodePropertyKey`\> \| ``"all"`` | Figma node properties are lazy-loaded, so to use any property you have to resolve it first. Resolving all node properties causes a performance hit, so you can specify which properties you want to resolve. If set to `[]`, no properties will be resolved and you will only get the ids of the nodes. Node methods (such as `getPluginData`) will never be resolved. Default: `all` |
+| `nodeTypes?` | readonly `SceneNodeType`[] | Only return specific types of nodes. If left undefined, all nodes in the selection will be returned. Default: `undefined` |
+| `resolveProperties?` | [`OptSceneNodeProperties`](types.md#optscenenodeproperties) | Figma node properties are lazy-loaded, so to use any property you have to resolve it first. Resolving all node properties causes a performance hit, so you can specify which properties you want to resolve. If set to `[]`, no properties will be resolved and you will only get the ids of the nodes. Node methods (such as `getPluginData`) will never be resolved. Default: `all` |
+| `resolveChildren?` | `boolean` | Resolve children nodes of the selection. If used with `nodeTypes`, all nodes of the specified types will be returned as a flat array. Default: `false` |
 | `resolveVariables?` | `boolean` | Resolve bound variables of the selection. Default: `false` |
 | `addAncestorsVisibleProperty?` | `boolean` | Add `ancestorsVisible` property to all nodes. This property is true if all ancestors of the node are visible. Default: `false` |
 | `apiOptions?` | [`RPCOptions`](types.md#rpcoptions) | Options for figma-plugin-api Default: see the RPCOptions type |
@@ -121,6 +134,6 @@ ___
 
 ### FIGMA\_MIXED
 
-• `Const` **FIGMA\_MIXED**: ``"57999e63-7384-42a1-acf8-d80b9f6c36a7"``
+• `Const` **FIGMA\_MIXED**: ``"mixed-57999e63-7384-42a1-acf8-d80b9f6c36a7"``
 
 Used to replace `figma.mixed` during JSON serialization

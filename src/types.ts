@@ -1,6 +1,7 @@
 import { RPCOptions } from 'figma-plugin-api';
 
 import { FIGMA_MIXED } from './constants';
+import { ApplicableNonFunctionPropertyKeys, ArrayElementUnion, NonFunctionPropertyKeys } from './typePrimitives';
 
 // For typedoc
 export { RPCOptions } from 'figma-plugin-api';
@@ -8,64 +9,50 @@ export { FIGMA_MIXED } from './constants';
 
 /**
  * @internal
+ * Describes the properties of an unresolved node
  */
-export type FigmaSelectionListener = (selection: ReadonlyArray<SerializedResolvedNode>) => void;
+export type BareNode = Pick<SceneNode, 'id'>;
+
+type SceneNodeType = SceneNode['type'];
 
 /**
  * @internal
  */
-export type Mutable<T> = { -readonly [P in keyof T]: T[P] };
+export type SceneNodeFromTypes<T extends readonly SceneNodeType[] | undefined = undefined> = T extends undefined
+  ? SceneNode
+  : // @ts-expect-error If the check is flipped, the type widens to SceneNode. On simpler types this doesn't happen but it seems like Extract does this.
+    ExtractedSceneNode<ArrayElementUnion<T>>;
 
 /**
  * @internal
+ * Utility type to get only matching node types from the SceneNode union type.
  */
-export type SerializedNodeProperty<T> = T extends PluginAPI['mixed'] ? typeof FIGMA_MIXED : T;
-/**
- * @internal
- */
-export type SerializedNode<T extends SceneNode> = {
-  [key in keyof T]: SerializedNodeProperty<T[key]>;
-};
-
-export type SerializedResolvedNode = SerializedNode<SceneNode> & {
-  ancestorsVisible?: boolean;
-  children?: readonly SerializedResolvedNode[];
-};
-
-// https://github.com/microsoft/TypeScript/issues/17002#issuecomment-1529056512
-type ArrayType<T> = Extract<true extends T & false ? unknown[] : T extends readonly unknown[] ? T : unknown[], T>;
-/**
- * @internal
- */
-export const isArray = Array.isArray as <T>(arg: T) => arg is ArrayType<T>;
+type ExtractedSceneNode<T extends SceneNodeType> = Extract<SceneNode, { type: T }>;
 
 /**
  * @internal
+ * Get the non-function property keys for a SceneNode
  */
-export const isStrictObject = (arg: unknown): arg is Record<string | number, unknown> => {
-  return arg != undefined && typeof arg === 'object' && arg.constructor === Object;
-};
+export type SceneNodePropertyKey<T extends SceneNodeType | undefined = undefined> = NonFunctionPropertyKeys<
+  T extends SceneNodeType ? ExtractedSceneNode<T> : SceneNode
+>;
+
+export type OptSceneNodeProperties = readonly SceneNodePropertyKey[] | 'all';
 
 /**
- * @internal
+ * Use `satisfies` (for TS >= 4.9) with this type to allow for type checking the options object
+ * while the type of the object remains exact.
+ *
+ * This allows us to infer the type of the returned nodes correctly.
+ *
+ * Example:
+ * ```typescript
+ * const options = {
+ *   nodeTypes: ['TEXT', 'FRAME'],
+ *   resolveProperties: ['name', 'characters', 'children]
+ * } satisfies FigmaSelectionHookOptions;
+ * ```
  */
-export const strictObjectKeys = Object.keys as <T extends object>(obj: T) => Array<keyof T>;
-
-/**
- * @internal
- */
-export const nodeCanHaveChildren = <T extends SceneNode>(node: T): node is T & ChildrenMixin => {
-  return 'children' in node;
-};
-
-// eslint-disable-next-line @typescript-eslint/ban-types
-type NonFunctionPropertyNames<T> = { [K in keyof T]: T[K] extends Function ? never : K }[keyof T];
-
-/**
- * @internal
- */
-export type SceneNodePropertyKey = NonFunctionPropertyNames<SceneNode>;
-
 export type FigmaSelectionHookOptions = {
   /**
    * Only return specific types of nodes.
@@ -74,15 +61,7 @@ export type FigmaSelectionHookOptions = {
    *
    * Default: `undefined`
    */
-  nodeTypes?: ReadonlyArray<SceneNode['type']>;
-  /**
-   * Resolve children nodes of the selection.
-   *
-   * If used with `nodeTypes`, all nodes of the specified types will be returned as a flat array.
-   *
-   * Default: `false`
-   */
-  resolveChildrenNodes?: boolean;
+  nodeTypes?: readonly SceneNodeType[] | undefined;
   /**
    * Figma node properties are lazy-loaded, so to use any property you have to resolve it first.
    *
@@ -94,7 +73,15 @@ export type FigmaSelectionHookOptions = {
    *
    * Default: `all`
    */
-  resolveProperties?: ReadonlyArray<SceneNodePropertyKey> | 'all';
+  resolveProperties?: OptSceneNodeProperties;
+  /**
+   * Resolve children nodes of the selection.
+   *
+   * If used with `nodeTypes`, all nodes of the specified types will be returned as a flat array.
+   *
+   * Default: `false`
+   */
+  resolveChildren?: boolean;
   /**
    * Resolve bound variables of the selection.
    *
@@ -114,15 +101,95 @@ export type FigmaSelectionHookOptions = {
    *
    * Default: see the RPCOptions type
    */
-  apiOptions?: RPCOptions;
+  apiOptions?: RPCOptions | undefined;
 };
 
 /**
  * @internal
  */
-export type ResolverOptions = Readonly<
-  Pick<
-    FigmaSelectionHookOptions,
-    'nodeTypes' | 'resolveChildrenNodes' | 'resolveProperties' | 'resolveVariables' | 'addAncestorsVisibleProperty'
-  >
+export type ResolverOptions = Omit<FigmaSelectionHookOptions, 'apiOptions'>;
+
+type SerializedNodeProperty<
+  Prop,
+  Node extends SceneNode,
+  Options extends ResolverOptions
+> = Prop extends PluginAPI['mixed']
+  ? typeof FIGMA_MIXED
+  : Prop extends readonly SceneNode[]
+    ? Options['resolveChildren'] extends true
+      ? readonly SerializedNode<Node, Options>[]
+      : readonly BareNode[]
+    : Prop;
+
+type ApplicableNodeKeys<
+  Node extends SceneNode,
+  Properties extends OptSceneNodeProperties
+> = Properties extends readonly SceneNodePropertyKey[]
+  ? ApplicableNonFunctionPropertyKeys<Node, ArrayElementUnion<Properties>>
+  : NonFunctionPropertyKeys<Node>;
+
+/**
+ * @internal
+ */
+export type SerializedNode<Node extends SceneNode, Options extends ResolverOptions> = Node extends SceneNode
+  ? {
+      type: Node['type'];
+      id: Node['id'];
+    } & {
+      [Key in Options['resolveProperties'] extends SceneNodePropertyKey[]
+        ? ApplicableNodeKeys<Node, Options['resolveProperties']>
+        : keyof Node]: SerializedNodeProperty<Node[Key], Node, Options>;
+    }
+  : never;
+
+/**
+ * @internal
+ */
+export type ResolvedNode<
+  Node extends SceneNode,
+  Keys extends readonly SceneNodePropertyKey[] | undefined = undefined
+> = Pick<
+  Node,
+  Keys extends readonly SceneNodePropertyKey[]
+    ? ApplicableNonFunctionPropertyKeys<Node, ArrayElementUnion<Keys>> | 'id' | 'type'
+    : ApplicableNonFunctionPropertyKeys<Node, SceneNodePropertyKey>
 >;
+
+/**
+ * @internal
+ */
+type SerializedResolvedNodeBase<Node extends SceneNode, Options extends ResolverOptions> = Node extends SceneNode
+  ? SerializedNode<Node, Options>
+  : never;
+
+/**
+ * @internal
+ */
+type AncestorsVisibleMixin = {
+  ancestorsVisible: boolean;
+};
+
+/**
+ * @internal
+ */
+type ResolveVariablesMixin = {
+  boundVariableInstances: readonly Variable[];
+};
+
+/**
+ * @internal
+ * All Figma nodes are converted to this type for serialization and sending to the plugin UI
+ */
+export type SerializedResolvedNode<Options extends ResolverOptions> =
+  Options['addAncestorsVisibleProperty'] extends true
+    ? Options['resolveVariables'] extends true
+      ? SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options> &
+          AncestorsVisibleMixin &
+          ResolveVariablesMixin
+      : SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options> & AncestorsVisibleMixin
+    : SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options>;
+
+/**
+ * @internal
+ */
+export type FigmaSelectionListener = (selection: readonly SerializedResolvedNode<ResolverOptions>[]) => void;

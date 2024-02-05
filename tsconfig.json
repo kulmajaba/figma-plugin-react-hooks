@@ -1,4 +1,5 @@
 {
+  "include": ["src/**/*"],
   "compilerOptions": {
     "target": "ESNext",
     "lib": ["ESNext", "DOM"],
@@ -7,7 +8,8 @@
     "types": ["@figma/plugin-typings"],
     "outDir": "lib",
     "moduleResolution": "node",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noErrorTruncation": false
   },
   "typedocOptions": {
     "entryPoints": ["src/types.ts"],

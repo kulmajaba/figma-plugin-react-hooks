@@ -1,30 +1,39 @@
+/* eslint-disable react-hooks/rules-of-hooks */
+
 import { useEffect, useState } from 'react';
 
 import useMountedEffect from './useMountedEffect';
 
 import { api, listeners, setlisteners } from '.';
 
-import { FigmaSelectionHookOptions, SerializedResolvedNode } from './types';
+import {
+  BareNode,
+  FigmaSelectionHookOptions,
+  FigmaSelectionListener,
+  ResolverOptions,
+  SerializedResolvedNode
+} from './types';
 
 export { FigmaSelectionHookOptions } from './types';
 export { FIGMA_MIXED } from './constants';
 
-type FigmaSelectionReturnType = [ReadonlyArray<SerializedResolvedNode>, (selection: ReadonlyArray<SceneNode>) => void];
-
-const defaultOptions: Required<Omit<FigmaSelectionHookOptions, 'nodeTypes' | 'apiOptions'>> = {
-  resolveChildrenNodes: false,
+const defaultOptions = {
+  nodeTypes: undefined,
+  resolveChildren: false,
   resolveVariables: false,
   resolveProperties: 'all',
   addAncestorsVisibleProperty: false
-};
+} as const satisfies ResolverOptions;
 
 /**
  * Only one config will take presence and it will be the config of the first hook that is mounted
  */
-const useFigmaSelection = (hookOptions?: FigmaSelectionHookOptions): FigmaSelectionReturnType => {
-  const opts = { ...defaultOptions, ...hookOptions };
+const useFigmaSelection = <const Options extends FigmaSelectionHookOptions>(
+  hookOptions?: Options
+): [readonly SerializedResolvedNode<Options>[], (selection: readonly BareNode[]) => void] => {
+  const opts = { ...defaultOptions, ...hookOptions } as const;
 
-  const [selection, setSelection] = useState<ReadonlyArray<SerializedResolvedNode>>([]);
+  const [selection, setSelection] = useState<readonly SerializedResolvedNode<Options>[]>([]);
 
   useMountedEffect(() => {
     console.warn('useFigmaSelection: changing options once mounted will not affect the behavior of the hook');
@@ -33,7 +42,8 @@ const useFigmaSelection = (hookOptions?: FigmaSelectionHookOptions): FigmaSelect
   useEffect(() => {
     console.log('Hook mount');
     const mount = async () => {
-      listeners.push(setSelection);
+      // Typing the listeners  explicitly is difficult due to the architecture, so we have to assert
+      listeners.push(setSelection as unknown as FigmaSelectionListener);
 
       // if it's the first listener, register for selection change
       if (listeners.length === 1) {
@@ -48,7 +58,7 @@ const useFigmaSelection = (hookOptions?: FigmaSelectionHookOptions): FigmaSelect
     mount();
 
     return () => {
-      setlisteners(listeners.filter((l) => l !== setSelection));
+      setlisteners(listeners.filter((l) => l !== (setSelection as unknown as FigmaSelectionListener)));
       if (!listeners.length) {
         // if it was the last listener, then we don't have to listen to selection change anymore
         api._deregisterForSelectionChange();
@@ -57,7 +67,7 @@ const useFigmaSelection = (hookOptions?: FigmaSelectionHookOptions): FigmaSelect
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return [selection, api._setSelection];
+  return [selection as readonly SerializedResolvedNode<Options>[], api._setSelection];
 };
 
 export default useFigmaSelection;

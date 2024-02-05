@@ -1,24 +1,26 @@
 import { createUIAPI, createPluginAPI } from 'figma-plugin-api';
 
+import { nodeCanHaveChildren } from './typeUtils';
 import { resolveAndFilterNodes } from './utils';
 
 import {
+  BareNode,
   FigmaSelectionHookOptions,
   FigmaSelectionListener,
-  SerializedResolvedNode,
-  nodeCanHaveChildren
+  ResolverOptions,
+  SerializedResolvedNode
 } from './types';
 
 export { FIGMA_MIXED } from './constants';
 
 declare global {
   interface Window {
-    _figma_onSelectionChange?: (selection: ReadonlyArray<SerializedResolvedNode>) => void;
+    _figma_onSelectionChange?: (selection: readonly SerializedResolvedNode<ResolverOptions>[]) => void;
   }
 }
 
 export const uiApi = createUIAPI({
-  _onSelectionChange(selection: ReadonlyArray<SerializedResolvedNode>) {
+  _onSelectionChange(selection: readonly SerializedResolvedNode<ResolverOptions>[]) {
     if (typeof window._figma_onSelectionChange !== 'undefined') {
       window._figma_onSelectionChange(selection);
     }
@@ -78,8 +80,8 @@ export const api = createPluginAPI({
     figma.off('selectionchange', selectionChangeHandler);
     figma.off('documentchange', documentChangeHandler);
   },
-  _setSelection(newSelection: ReadonlyArray<SceneNode>) {
-    figma.currentPage.selection = newSelection;
+  _setSelection<N extends readonly BareNode[]>(newSelection: N) {
+    figma.currentPage.selection = newSelection as unknown as readonly SceneNode[];
   }
 });
 
