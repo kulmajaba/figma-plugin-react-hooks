@@ -1,3 +1,5 @@
+/// <reference types="@figma/plugin-typings" />
+
 import { expectType } from 'tsd';
 
 import { ApplicableNonFunctionPropertyKeys, NonFunctionPropertyKeys } from '../src/typePrimitives';
