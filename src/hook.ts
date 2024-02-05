@@ -1,70 +1,33 @@
+/* eslint-disable react-hooks/rules-of-hooks */
+
 import { useEffect, useState } from 'react';
 
 import useMountedEffect from './useMountedEffect';
 
 import { api, listeners, setlisteners } from '.';
 
-import {
-  BareNode,
-  OptNodeTypes,
-  OptResolvedPropKeys,
-  OptResolvedPropKeysToPropKeysOnly,
-  RPCOptions,
-  SceneNodeFromTypes,
-  SerializedResolvedNode
-} from './types';
+import { BareNode, FigmaSelectionHookOptions, ResolverOptions, SerializedResolvedNode } from './types';
 
 export { FigmaSelectionHookOptions } from './types';
 export { FIGMA_MIXED } from './constants';
 
 const defaultOptions = {
+  nodeTypes: undefined,
   resolveChildren: false,
   resolveVariables: false,
   resolveProperties: 'all',
   addAncestorsVisibleProperty: false
-} as const;
+} as const satisfies ResolverOptions;
 
 /**
  * Only one config will take presence and it will be the config of the first hook that is mounted
  */
-const useFigmaSelection = <
-  NodeTypes extends OptNodeTypes,
-  ResolvedPropKeys extends OptResolvedPropKeys<NodeTypes>,
-  ResolveChildren extends boolean,
-  AddAncestorsVisibleProp extends boolean,
-  ResolveVariables extends boolean
->(hookOptions?: {
-  nodeTypes?: NodeTypes;
-  resolveChildren?: ResolveChildren;
-  resolveProperties?: ResolvedPropKeys;
-  resolveVariables?: ResolveVariables;
-  addAncestorsVisibleProperty?: AddAncestorsVisibleProp;
-  apiOptions?: RPCOptions;
-}): [
-  ReadonlyArray<
-    SerializedResolvedNode<
-      SceneNodeFromTypes<NodeTypes>,
-      OptResolvedPropKeysToPropKeysOnly<NodeTypes, ResolvedPropKeys>,
-      ResolveChildren,
-      AddAncestorsVisibleProp,
-      ResolveVariables
-    >
-  >,
-  <N extends BareNode>(selection: ReadonlyArray<N>) => void
-] => {
-  const opts = { ...defaultOptions, ...hookOptions };
+const useFigmaSelection = <const Options extends FigmaSelectionHookOptions>(
+  hookOptions?: Options
+): [readonly SerializedResolvedNode<Options>[], (selection: readonly BareNode[]) => void] => {
+  const opts = { ...defaultOptions, ...hookOptions } as const;
 
-  type SelectionHookType = ReadonlyArray<
-    SerializedResolvedNode<
-      SceneNodeFromTypes<NodeTypes>,
-      OptResolvedPropKeysToPropKeysOnly<NodeTypes, ResolvedPropKeys>,
-      ResolveChildren,
-      AddAncestorsVisibleProp,
-      ResolveVariables
-    >
-  >;
-
-  const [selection, setSelection] = useState<SelectionHookType>([]);
+  const [selection, setSelection] = useState<readonly SerializedResolvedNode<Options>[]>([]);
 
   useMountedEffect(() => {
     console.warn('useFigmaSelection: changing options once mounted will not affect the behavior of the hook');
@@ -98,23 +61,7 @@ const useFigmaSelection = <
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return [selection, api._setSelection];
+  return [selection as readonly SerializedResolvedNode<Options>[], api._setSelection];
 };
-
-// eslint-disable-next-line react-hooks/rules-of-hooks
-const [selection] = useFigmaSelection({
-  nodeTypes: ['TEXT', 'FRAME'],
-  resolveProperties: ['textStyleId', 'fills'],
-  addAncestorsVisibleProperty: true
-});
-
-selection.forEach((node) => {
-  if (node.type === 'TEXT') {
-    node.characters;
-    node.ancestorsVisible;
-  } else {
-    node.children;
-  }
-});
 
 export default useFigmaSelection;

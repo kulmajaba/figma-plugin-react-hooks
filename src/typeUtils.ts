@@ -1,4 +1,4 @@
-import { ArrayType } from './types';
+import { ArrayType } from './typePrimitives';
 
 export const isArray = Array.isArray as <T>(arg: T) => arg is ArrayType<T>;
 

@@ -2,13 +2,7 @@ import { createUIAPI, createPluginAPI } from 'figma-plugin-api';
 
 import { resolveAndFilterNodes } from './utils';
 
-import {
-  BareNode,
-  FigmaSelectionHookOptions,
-  FigmaSelectionListener,
-  SerializedResolvedNode,
-  nodeCanHaveChildren
-} from './types';
+import { BareNode, FigmaSelectionHookOptions, SerializedResolvedNode } from './types';
 
 export { FIGMA_MIXED } from './constants';
 
