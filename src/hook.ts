@@ -6,7 +6,13 @@ import useMountedEffect from './useMountedEffect';
 
 import { api, listeners, setlisteners } from '.';
 
-import { BareNode, FigmaSelectionHookOptions, ResolverOptions, SerializedResolvedNode } from './types';
+import {
+  BareNode,
+  FigmaSelectionHookOptions,
+  FigmaSelectionListener,
+  ResolverOptions,
+  SerializedResolvedNode
+} from './types';
 
 export { FigmaSelectionHookOptions } from './types';
 export { FIGMA_MIXED } from './constants';
@@ -36,8 +42,8 @@ const useFigmaSelection = <const Options extends FigmaSelectionHookOptions>(
   useEffect(() => {
     console.log('Hook mount');
     const mount = async () => {
-      // TODO: if listeners can be strictly typed according to the options, this assert can be removed
-      listeners.push(setSelection);
+      // Typing the listeners  explicitly is difficult due to the architecture, so we have to assert
+      listeners.push(setSelection as unknown as FigmaSelectionListener);
 
       // if it's the first listener, register for selection change
       if (listeners.length === 1) {
@@ -52,7 +58,7 @@ const useFigmaSelection = <const Options extends FigmaSelectionHookOptions>(
     mount();
 
     return () => {
-      setlisteners(listeners.filter((l) => l !== setSelection));
+      setlisteners(listeners.filter((l) => l !== (setSelection as unknown as FigmaSelectionListener)));
       if (!listeners.length) {
         // if it was the last listener, then we don't have to listen to selection change anymore
         api._deregisterForSelectionChange();

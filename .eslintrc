@@ -51,6 +51,7 @@
         "pathGroupsExcludedImportTypes": ["react"]
       }
     ],
+    "import/no-unresolved": [2, { "ignore": ["tsd"] }],
     "prettier/prettier": 1,
     "react/jsx-fragments": [1, "syntax"],
     "react/destructuring-assignment": [1, "always"],

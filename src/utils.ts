@@ -75,7 +75,7 @@ const resolveAndSerializeNodeProperties = <Node extends SceneNode, const Options
 export const resolveAndFilterNodes = <const Options extends ResolverOptions>(
   nodes: readonly SceneNode[],
   options: Options,
-  ancestorsVisible: boolean
+  ancestorsVisible: boolean = true
 ): SerializedResolvedNode<Options>[] => {
   const result: SerializedResolvedNode<Options>[] = [];
   const { nodeTypes, resolveChildren } = options;

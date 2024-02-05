@@ -2,13 +2,6 @@
 
 /**
  * @internal
- */
-type Mutable<T extends object> = { -readonly [P in keyof T]: T[P] };
-
-type RequiredAllowUndefined<T> = { [K in keyof T]: T[K] };
-
-/**
- * @internal
  * https://github.com/microsoft/TypeScript/issues/17002#issuecomment-1529056512
  */
 export type ArrayType<T> = Extract<
@@ -24,24 +17,9 @@ export type ArrayElementUnion<T extends readonly unknown[]> = T[number];
 
 /**
  * @internal
- * Returns array elements as union or undefined
- */
-type ArrayElementUnionOrUndefined<T extends readonly unknown[] | undefined> = T extends readonly unknown[]
-  ? ArrayElementUnion<T>
-  : undefined;
-
-/**
- * @internal
  * Get all keys of a union type, instead of just the common keys that `keyof` returns
  */
 type KeysOfUnion<T> = T extends infer P ? keyof P : never;
-
-/**
- * @internal
- */
-type ObjectWithDefaults<T extends object, D extends object> = {
-  [K in keyof KeysOfUnion<T | D>]: K extends keyof T ? T[K] : K extends keyof D ? D[K] : never;
-};
 
 /**
  * @internal

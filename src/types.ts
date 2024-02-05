@@ -176,3 +176,5 @@ export type SerializedResolvedNode<Options extends ResolverOptions> =
           ResolveVariablesMixin
       : SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options> & AncestorsVisibleMixin
     : SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options>;
+
+export type FigmaSelectionListener = (selection: readonly SerializedResolvedNode<ResolverOptions>[]) => void;

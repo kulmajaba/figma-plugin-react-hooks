@@ -1,19 +1,26 @@
 import { createUIAPI, createPluginAPI } from 'figma-plugin-api';
 
+import { nodeCanHaveChildren } from './typeUtils';
 import { resolveAndFilterNodes } from './utils';
 
-import { BareNode, FigmaSelectionHookOptions, SerializedResolvedNode } from './types';
+import {
+  BareNode,
+  FigmaSelectionHookOptions,
+  FigmaSelectionListener,
+  ResolverOptions,
+  SerializedResolvedNode
+} from './types';
 
 export { FIGMA_MIXED } from './constants';
 
 declare global {
   interface Window {
-    _figma_onSelectionChange?: (selection: ReadonlyArray<SerializedResolvedNode>) => void;
+    _figma_onSelectionChange?: (selection: readonly SerializedResolvedNode<ResolverOptions>[]) => void;
   }
 }
 
 export const uiApi = createUIAPI({
-  _onSelectionChange(selection: ReadonlyArray<SerializedResolvedNode>) {
+  _onSelectionChange(selection: readonly SerializedResolvedNode<ResolverOptions>[]) {
     if (typeof window._figma_onSelectionChange !== 'undefined') {
       window._figma_onSelectionChange(selection);
     }
