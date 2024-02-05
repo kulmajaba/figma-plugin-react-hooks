@@ -1,6 +1,6 @@
 import { expectType } from 'tsd';
 
-import { SerializedNode } from '../src/types';
+import { KeysOfUnion, SerializedNode } from '../src/types';
 
 expectType<
   {
@@ -10,3 +10,5 @@ expectType<
     characters: string;
   }
 >({} as SerializedNode<TextNode, 'children' | 'characters', false>);
+
+expectType<'a' | 'b' | 'c'>({} as KeysOfUnion<{ a: 1; b: 2 } | { b: 2; c: 3 }>);

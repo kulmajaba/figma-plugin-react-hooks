@@ -17,7 +17,10 @@ export type Mutable<T extends object> = { -readonly [P in keyof T]: T[P] };
  * @internal
  * https://github.com/microsoft/TypeScript/issues/17002#issuecomment-1529056512
  */
-type ArrayType<T> = Extract<true extends T & false ? unknown[] : T extends readonly unknown[] ? T : unknown[], T>;
+export type ArrayType<T> = Extract<
+  true extends T & false ? unknown[] : T extends readonly unknown[] ? T : unknown[],
+  T
+>;
 
 /**
  * @internal
@@ -37,7 +40,14 @@ export type ArrayElementUnionOrUndefined<T extends readonly unknown[] | undefine
  * @internal
  * Get all keys of a union type, instead of just the common keys that `keyof` returns
  */
-type KeysOfUnion<T> = T extends infer P ? keyof P : never;
+export type KeysOfUnion<T> = T extends infer P ? keyof P : never;
+
+/**
+ * @internal
+ */
+export type ObjectWithDefaults<T extends object, D extends object> = {
+  [K in keyof KeysOfUnion<T | D>]: K extends keyof T ? T[K] : K extends keyof D ? D[K] : never;
+};
 
 /**
  * @internal
@@ -217,7 +227,7 @@ export type OptResolvedPropKeysToPropKeysOnly<
   ? SceneNodePropertyKey<ArrayElementUnionOrUndefined<T>>
   : ArrayElementUnion<K extends 'all' ? never : K>;
 
-export type FigmaSelectionHookOptions = {
+export type FigmaSelectionHookOptions<NodeTypes extends readonly SceneNodeType[]> = {
   /**
    * Only return specific types of nodes.
    *
@@ -225,15 +235,7 @@ export type FigmaSelectionHookOptions = {
    *
    * Default: `undefined`
    */
-  nodeTypes?: ReadonlyArray<SceneNode['type']>;
-  /**
-   * Resolve children nodes of the selection.
-   *
-   * If used with `nodeTypes`, all nodes of the specified types will be returned as a flat array.
-   *
-   * Default: `false`
-   */
-  resolveChildren?: boolean;
+  nodeTypes?: NodeTypes;
   /**
    * Figma node properties are lazy-loaded, so to use any property you have to resolve it first.
    *
@@ -245,7 +247,19 @@ export type FigmaSelectionHookOptions = {
    *
    * Default: `all`
    */
-  resolveProperties?: readonly SceneNodePropertyKey[] | 'all';
+  resolveProperties?:
+    | (NodeTypes extends readonly SceneNodeType[]
+        ? readonly SceneNodePropertyKey<ArrayElementUnion<NodeTypes>>[]
+        : readonly SceneNodePropertyKey[])
+    | 'all';
+  /**
+   * Resolve children nodes of the selection.
+   *
+   * If used with `nodeTypes`, all nodes of the specified types will be returned as a flat array.
+   *
+   * Default: `false`
+   */
+  resolveChildren?: boolean;
   /**
    * Resolve bound variables of the selection.
    *
@@ -268,21 +282,6 @@ export type FigmaSelectionHookOptions = {
   apiOptions?: RPCOptions;
 };
 
-// Type guards
-
-/**
- * @internal
- */
-export const isArray = Array.isArray as <T>(arg: T) => arg is ArrayType<T>;
-
-/**
- * @internal
- */
-export const strictObjectKeys = Object.keys as <T extends object>(obj: T) => Array<keyof T>;
-
-/**
- * @internal
- */
-export const nodeCanHaveChildren = <T extends SceneNode>(node: T): node is T & ChildrenMixin => {
-  return 'children' in node;
-};
+export type ResolverOptions<T extends readonly SceneNodeType[]> = Required<
+  Omit<FigmaSelectionHookOptions<T>, 'rpcOptions'>
+>;

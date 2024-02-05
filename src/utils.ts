@@ -1,15 +1,15 @@
 import { FIGMA_MIXED } from './constants';
+import { nodeCanHaveChildren, strictObjectKeys } from './typeUtils';
 
 import {
-  nodeCanHaveChildren,
-  strictObjectKeys,
   SceneNodePropertyKey,
   SerializedResolvedNode,
   SceneNodeFromTypes,
   OptNodeTypes,
   OptResolvedPropKeys,
   OptResolvedPropKeysToPropKeysOnly,
-  ResolvedNode
+  ResolvedNode,
+  ResolverOptions
 } from './types';
 
 const defaultNodePropertyGetterFilter = <T extends SceneNode>(key: keyof T, node: T): boolean => {
@@ -49,6 +49,7 @@ const resolveNodeProperties = <T extends SceneNode, K extends readonly SceneNode
     objectWithProperties[getter] = node[getter];
   }
 
+  // TypeScript doesn't infer the type correctly on its own
   return objectWithProperties as ResolvedNode<T, K>;
 };
 
@@ -59,13 +60,7 @@ const resolveAndSerializeNodeProperties = <
   ResolveChildren extends boolean,
   AddAncestorsVisibleProp extends boolean,
   ResolveVariables extends boolean,
-  Options extends {
-    nodeTypes?: NodeTypes;
-    resolveChildrenNodes: ResolveChildren;
-    resolveProperties: ResolvedPropKeys;
-    resolveVariables: ResolveVariables;
-    addAncestorsVisibleProperty: AddAncestorsVisibleProp;
-  }
+  Options extends ResolverOptions<[T['type']]>
 >(
   object: T,
   options: Options,
@@ -78,6 +73,7 @@ const resolveAndSerializeNodeProperties = <
   AddAncestorsVisibleProp,
   ResolveVariables
 > => {
+  // TypeScript doesn't infer the type correctly on its own
   const resolvedNode = resolveNodeProperties(object, propertyKeys) as unknown as SerializedResolvedNode<
     T,
     OptResolvedPropKeysToPropKeysOnly<[T['type']], ResolvedPropKeys>,
@@ -102,7 +98,6 @@ const resolveAndSerializeNodeProperties = <
 };
 
 // TODO: Resolve variables
-// TODO: make ancestorsVisible optional
 export const resolveAndFilterNodes = <
   NodeTypes extends OptNodeTypes,
   ResolvedPropKeys extends OptResolvedPropKeys<NodeTypes>,
