@@ -36,13 +36,14 @@ const resolveNodeProperties = <Node extends SceneNode, const Keys extends readon
 
   getters = getters.filter((key) => defaultNodePropertyGetterFilter(key, node));
 
-  const objectWithProperties = node;
+  const objectWithProperties = {
+    id: node.id
+  } as Node;
 
   for (const getter of getters) {
     objectWithProperties[getter] = node[getter];
   }
 
-  // TypeScript doesn't infer the type correctly on its own
   return objectWithProperties;
 };
 
@@ -52,7 +53,7 @@ const resolveAndSerializeNodeProperties = <Node extends SceneNode, const Options
   ancestorsVisible: boolean
 ): SerializedResolvedNode<Options> => {
   const { resolveProperties, addAncestorsVisibleProperty } = options;
-  // TypeScript doesn't infer the type correctly on its own
+
   const resolvedNode = resolveNodeProperties(
     object,
     resolveProperties === 'all' ? undefined : resolveProperties
