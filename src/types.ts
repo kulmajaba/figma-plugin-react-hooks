@@ -13,11 +13,11 @@ export { FIGMA_MIXED } from './constants';
  */
 export type BareNode = Pick<SceneNode, 'id'>;
 
+type SceneNodeType = SceneNode['type'];
+
 /**
  * @internal
  */
-type SceneNodeType = SceneNode['type'];
-
 export type SceneNodeFromTypes<T extends readonly SceneNodeType[] | undefined = undefined> = T extends undefined
   ? SceneNode
   : // @ts-expect-error If the check is flipped, the type widens to SceneNode. On simpler types this doesn't happen but it seems like Extract does this.
@@ -30,21 +30,14 @@ export type SceneNodeFromTypes<T extends readonly SceneNodeType[] | undefined = 
 type ExtractedSceneNode<T extends SceneNodeType> = Extract<SceneNode, { type: T }>;
 
 /**
+ * @internal
  * Get the non-function property keys for a SceneNode
  */
 export type SceneNodePropertyKey<T extends SceneNodeType | undefined = undefined> = NonFunctionPropertyKeys<
   T extends SceneNodeType ? ExtractedSceneNode<T> : SceneNode
 >;
 
-type OptSceneNodeProperties = readonly SceneNodePropertyKey[] | 'all';
-
-// If we type this generically with NodeTypes extends readonly SceneNodeType[]
-// We could narrow down the type of resolveProperties:
-//  (NodeTypes extends readonly SceneNodeType[]
-//   ? readonly SceneNodePropertyKey<ArrayElementUnion<NodeTypes>>[]
-//    : readonly SceneNodePropertyKey[])
-// 'all';
-// However the type is easier to handle if we don't narrow the type of resolveProperties
+export type OptSceneNodeProperties = readonly SceneNodePropertyKey[] | 'all';
 
 /**
  * Use `satisfies` (for TS >= 4.9) with this type to allow for type checking the options object
@@ -111,6 +104,9 @@ export type FigmaSelectionHookOptions = {
   apiOptions?: RPCOptions | undefined;
 };
 
+/**
+ * @internal
+ */
 export type ResolverOptions = Omit<FigmaSelectionHookOptions, 'apiOptions'>;
 
 type SerializedNodeProperty<
@@ -132,6 +128,9 @@ type ApplicableNodeKeys<
   ? ApplicableNonFunctionPropertyKeys<Node, ArrayElementUnion<Properties>>
   : NonFunctionPropertyKeys<Node>;
 
+/**
+ * @internal
+ */
 export type SerializedNode<Node extends SceneNode, Options extends ResolverOptions> = Node extends SceneNode
   ? {
       type: Node['type'];
@@ -143,6 +142,9 @@ export type SerializedNode<Node extends SceneNode, Options extends ResolverOptio
     }
   : never;
 
+/**
+ * @internal
+ */
 export type ResolvedNode<
   Node extends SceneNode,
   Keys extends readonly SceneNodePropertyKey[] | undefined = undefined
@@ -153,21 +155,31 @@ export type ResolvedNode<
     : ApplicableNonFunctionPropertyKeys<Node, SceneNodePropertyKey>
 >;
 
+/**
+ * @internal
+ */
 type SerializedResolvedNodeBase<Node extends SceneNode, Options extends ResolverOptions> = Node extends SceneNode
   ? SerializedNode<Node, Options>
   : never;
 
+/**
+ * @internal
+ */
 type AncestorsVisibleMixin = {
   ancestorsVisible: boolean;
 };
 
+/**
+ * @internal
+ */
 type ResolveVariablesMixin = {
   boundVariableInstances: readonly Variable[];
 };
 
-// Passing SceneNode as one of the types makes this safer than using nodeTypes from Options.
-// This is due to nodeTypes getting widened to contain all possible types unless declared as const.
-// TODO: investigate if we can define all functions usinf options with <const T> generic type to avoid it
+/**
+ * @internal
+ * All Figma nodes are converted to this type for serialization and sending to the plugin UI
+ */
 export type SerializedResolvedNode<Options extends ResolverOptions> =
   Options['addAncestorsVisibleProperty'] extends true
     ? Options['resolveVariables'] extends true
@@ -177,4 +189,7 @@ export type SerializedResolvedNode<Options extends ResolverOptions> =
       : SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options> & AncestorsVisibleMixin
     : SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options>;
 
+/**
+ * @internal
+ */
 export type FigmaSelectionListener = (selection: readonly SerializedResolvedNode<ResolverOptions>[]) => void;
