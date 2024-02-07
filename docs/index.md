@@ -71,8 +71,3 @@ const SomeComponent: FC = () => {
 
 export default SomeComponent;
 ```
-
-## TODO
-
-- Use rpcOptions when creating APIs
-- Make addParentChainVisibleProperty do stuff

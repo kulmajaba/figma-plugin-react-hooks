@@ -71,7 +71,7 @@ export type FigmaSelectionHookOptions = {
    *
    * Node methods (such as `getPluginData`) will never be resolved.
    *
-   * Default: `all`
+   * Default: `'all'`
    */
   resolveProperties?: OptSceneNodeProperties;
   /**
