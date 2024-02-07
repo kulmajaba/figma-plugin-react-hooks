@@ -1,6 +1,6 @@
 {
   "name": "figma-plugin-react-hooks",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "",
   "exports": {
     ".": {
@@ -32,10 +32,10 @@
     "start": "npm run dev",
     "build": "rm -rf lib/* && npm run build:index:common && npm run build:index:esm && npm run build:hook:common && npm run build:hook:esm && npm run build:types && npm run build:docs",
     "dev": "concurrently -n index-cjs,index-esm,hook-cjs,hook-esm,ts 'npm run build:index:common -- --watch' 'npm run build:index:esm -- --watch' 'npm run build:hook:common -- --watch' 'npm run build:hook:esm -- --watch' 'npm run build:types -- --watch'",
-    "build:index": "esbuild src/index.ts --target=es2017 --sourcemap --bundle",
+    "build:index": "esbuild src/index.ts --target=es2017 --sourcemap --bundle --external:figma-plugin-api",
     "build:index:common": "npm run build:index -- --format=cjs --outfile=lib/index.cjs",
     "build:index:esm": "npm run build:index -- --format=esm --outfile=lib/index.mjs",
-    "build:hook": "esbuild src/hook.ts --target=es2017 --sourcemap --bundle --external:react",
+    "build:hook": "esbuild src/hook.ts --target=es2017 --sourcemap --bundle --external:react --external:figma-plugin-api",
     "build:hook:common": "npm run build:hook -- --format=cjs --outfile=lib/hook.cjs",
     "build:hook:esm": "npm run build:hook -- --format=esm --outfile=lib/hook.mjs",
     "build:types": "tsc --emitDeclarationOnly --declaration --preserveWatchOutput",
@@ -46,10 +46,8 @@
   "author": "Mika Kuitunen",
   "license": "MIT",
   "peerDependencies": {
-    "react": ">=17.0.0"
-  },
-  "dependencies": {
-    "figma-plugin-api": "^1.0.1"
+    "react": ">=17.0.0",
+    "figma-plugin-api": ">=1.1.0"
   },
   "devDependencies": {
     "@figma/plugin-typings": "*",
