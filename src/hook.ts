@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import useMountedEffect from './useMountedEffect';
 
-import { api, listeners, setlisteners } from '.';
+import { api, listeners, setlisteners, updateApiWithOptions, updateUiApiWithOptions } from '.';
 
 import {
   BareNode,
@@ -40,7 +40,6 @@ const useFigmaSelection = <const Options extends FigmaSelectionHookOptions>(
   }, [hookOptions]);
 
   useEffect(() => {
-    console.log('Hook mount');
     const mount = async () => {
       // Typing the listeners  explicitly is difficult due to the architecture, so we have to assert
       listeners.push(setSelection as unknown as FigmaSelectionListener);
@@ -48,6 +47,10 @@ const useFigmaSelection = <const Options extends FigmaSelectionHookOptions>(
       // if it's the first listener, register for selection change
       if (listeners.length === 1) {
         try {
+          if (opts.apiOptions) {
+            updateApiWithOptions(opts.apiOptions);
+            updateUiApiWithOptions(opts.apiOptions);
+          }
           await api._registerForSelectionChange(opts);
         } catch (e) {
           console.error(e);
