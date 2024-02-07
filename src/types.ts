@@ -1,10 +1,11 @@
-import { RPCOptions } from 'figma-plugin-api';
-
 import { FIGMA_MIXED } from './constants';
 import { ApplicableNonFunctionPropertyKeys, ArrayElementUnion, NonFunctionPropertyKeys } from './typePrimitives';
 
+// Allow esbuild to drop the import
+import type { RPCOptions } from 'figma-plugin-api';
+
 // For typedoc
-export { RPCOptions } from 'figma-plugin-api';
+export type { RPCOptions } from 'figma-plugin-api';
 export { FIGMA_MIXED } from './constants';
 
 /**

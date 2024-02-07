@@ -1,7 +1,10 @@
-import { createUIAPI, createPluginAPI, RPCOptions } from 'figma-plugin-api';
+import { createUIAPI, createPluginAPI } from 'figma-plugin-api';
 
 import { nodeCanHaveChildren } from './typeUtils';
 import { resolveAndFilterNodes } from './utils';
+
+// Allow esbuild to drop the import
+import type { RPCOptions } from 'figma-plugin-api';
 
 import {
   BareNode,
