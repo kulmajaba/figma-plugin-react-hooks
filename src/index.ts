@@ -1,4 +1,4 @@
-import { createUIAPI, createPluginAPI } from 'figma-plugin-api';
+import { createUIAPI, createPluginAPI, RPCOptions } from 'figma-plugin-api';
 
 import { nodeCanHaveChildren } from './typeUtils';
 import { resolveAndFilterNodes } from './utils';
@@ -19,18 +19,22 @@ declare global {
   }
 }
 
-export const uiApi = createUIAPI({
+const uiApiMethods = {
   _onSelectionChange(selection: readonly SerializedResolvedNode<ResolverOptions>[]) {
     if (typeof window._figma_onSelectionChange !== 'undefined') {
       window._figma_onSelectionChange(selection);
     }
   }
-});
+};
+
+export let uiApi = createUIAPI(uiApiMethods);
+
+export const updateUiApiWithOptions = (rpcOptions: RPCOptions) => {
+  uiApi = createUIAPI(uiApiMethods, rpcOptions);
+};
 
 const selectionChangeHandler = () => {
-  console.log('Selection change handler', figma.currentPage.selection);
   const resolvedSelection = resolveAndFilterNodes(figma.currentPage.selection, options);
-  console.log('Filtered selection:', resolvedSelection);
   uiApi._onSelectionChange(resolvedSelection);
 };
 
@@ -68,10 +72,16 @@ const documentChangeHandler = (e: DocumentChangeEvent) => {
   }
 };
 
-export const api = createPluginAPI({
+const apiMethods = {
   _registerForSelectionChange(opts: FigmaSelectionHookOptions) {
-    console.log('Register');
     options = opts;
+
+    const apiOptions = opts.apiOptions;
+    if (apiOptions) {
+      updateUiApiWithOptions(apiOptions);
+      updateApiWithOptions(apiOptions);
+    }
+
     figma.on('selectionchange', selectionChangeHandler);
     figma.on('documentchange', documentChangeHandler);
     selectionChangeHandler();
@@ -83,7 +93,13 @@ export const api = createPluginAPI({
   _setSelection<N extends readonly BareNode[]>(newSelection: N) {
     figma.currentPage.selection = newSelection as unknown as readonly SceneNode[];
   }
-});
+};
+
+export let api = createPluginAPI(apiMethods);
+
+export const updateApiWithOptions = (rpcOptions: RPCOptions) => {
+  api = createPluginAPI(apiMethods, rpcOptions);
+};
 
 let options: FigmaSelectionHookOptions;
 
