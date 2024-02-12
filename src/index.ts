@@ -76,7 +76,7 @@ const documentChangeHandler = (e: DocumentChangeEvent) => {
 };
 
 const apiMethods = {
-  _registerForSelectionChange(opts: FigmaSelectionHookOptions) {
+  _registerForSelectionChange(opts: ResolverOptions & FigmaSelectionHookOptions) {
     options = opts;
 
     const apiOptions = opts.apiOptions;
@@ -104,7 +104,7 @@ export const updateApiWithOptions = (rpcOptions: RPCOptions) => {
   api = createPluginAPI(apiMethods, rpcOptions);
 };
 
-let options: FigmaSelectionHookOptions;
+let options: ResolverOptions & FigmaSelectionHookOptions;
 
 export let listeners: FigmaSelectionListener[] = [];
 

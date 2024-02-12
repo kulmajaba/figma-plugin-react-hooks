@@ -1,7 +1,16 @@
 import { FIGMA_MIXED } from './constants';
-import { nodeCanHaveChildren, strictObjectKeys } from './typeUtils';
+import { isArray, nodeCanHaveChildren, strictObjectKeys } from './typeUtils';
 
-import { ResolvedNode, ResolverOptions, SceneNodePropertyKey, SerializedResolvedNode } from './types';
+import { Mutable, NonFunctionPropertyKeys } from './typePrimitives';
+import {
+  BoundVariableInstances,
+  BoundVariablesAliasArrays,
+  BoundVariablesBareAliases,
+  ResolvedNode,
+  ResolverOptions,
+  SceneNodePropertyKey,
+  SerializedResolvedNode
+} from './types';
 
 const defaultNodePropertyGetterFilter = <Node extends SceneNode>(key: keyof Node, node: Node): boolean => {
   return (
@@ -19,7 +28,7 @@ const resolveNodeProperties = <Node extends SceneNode, const Keys extends readon
 ): ResolvedNode<Node, Keys> => {
   // Narrow the type from the default which has a mapped type
   const descriptors = Object.getOwnPropertyDescriptors<Node>(Object.getPrototypeOf(node)) as {
-    [P in keyof Node]: TypedPropertyDescriptor<Node[P]>;
+    [K in keyof Node]: TypedPropertyDescriptor<Node[K]>;
   };
 
   // In reality the type is string | number | keyof T from getOwnPropertyDescriptors
@@ -47,15 +56,94 @@ const resolveNodeProperties = <Node extends SceneNode, const Keys extends readon
   return objectWithProperties;
 };
 
+const resolveVariableProperties = (variable: Variable): Variable => {
+  // Narrow the type from the default which has a mapped type
+  const descriptors = Object.getOwnPropertyDescriptors<Variable>(Object.getPrototypeOf(variable)) as {
+    [K in keyof Variable]: TypedPropertyDescriptor<Variable[K]>;
+  };
+
+  // In reality the type is string | number | keyof T from getOwnPropertyDescriptors
+  // but we can safely assert a narrower type
+  const getterKeys = strictObjectKeys(descriptors);
+  const getters = getterKeys.filter(
+    (key) => typeof descriptors[key].get === 'function'
+  ) as NonFunctionPropertyKeys<Variable>[];
+
+  getters.push('id');
+
+  const objectWithProperties = {} as Mutable<Variable>;
+
+  for (const getter of getters) {
+    // @ts-expect-error For some reason this gives a "not assignable to never" error with this way of accessing the object
+    objectWithProperties[getter] = variable[getter];
+  }
+
+  return objectWithProperties;
+};
+
+const resolveBoundVariables = <
+  BoundVariables extends NonNullable<SceneNode['boundVariables']>,
+  const Options extends ResolverOptions
+>(
+  boundVariables: BoundVariables,
+  options: Options
+): BoundVariableInstances => {
+  const { resolveVariables } = options;
+  const result: Mutable<BoundVariableInstances> = {};
+
+  for (const boundVariableKey of strictObjectKeys(boundVariables)) {
+    if (
+      resolveVariables === 'all' ||
+      (isArray(resolveVariables) && resolveVariables.includes(boundVariableKey as keyof SceneNode['boundVariables']))
+    ) {
+      const boundVariable = boundVariables[boundVariableKey];
+
+      // TODO: there is a lot of type assertions going on that could be avoided with smarter type guards
+      if (Array.isArray(boundVariable)) {
+        const aliases: VariableAlias[] = boundVariable;
+        const variableInstances: Variable[] = [];
+
+        aliases.forEach((variableAlias) => {
+          const variable = figma.variables.getVariableById(variableAlias.id);
+          if (variable) {
+            variableInstances.push(resolveVariableProperties(variable));
+          }
+        });
+
+        variableInstances.length > 0 &&
+          (result[boundVariableKey as keyof BoundVariablesAliasArrays] = variableInstances);
+      } else if (boundVariableKey === 'componentProperties') {
+        const aliasObject = boundVariable as NonNullable<BoundVariables['componentProperties']>;
+        const instanceObject: Record<string, Variable> = {};
+
+        for (const componentPropertyKey of Object.keys(aliasObject)) {
+          const variable = figma.variables.getVariableById(aliasObject[componentPropertyKey].id);
+          variable && (instanceObject[componentPropertyKey] = resolveVariableProperties(variable));
+        }
+
+        Object.keys(instanceObject).length > 0 && (result[boundVariableKey as 'componentProperties'] = instanceObject);
+      } else {
+        const alias = boundVariable as VariableAlias;
+        const variableInstance = figma.variables.getVariableById(alias.id);
+
+        variableInstance &&
+          (result[boundVariableKey as keyof BoundVariablesBareAliases] = resolveVariableProperties(variableInstance));
+      }
+    }
+  }
+
+  return result;
+};
+
 const resolveAndSerializeNodeProperties = <Node extends SceneNode, const Options extends ResolverOptions>(
-  object: Node,
+  node: Node,
   options: Options,
   ancestorsVisible: boolean
 ): SerializedResolvedNode<Options> => {
-  const { resolveProperties, addAncestorsVisibleProperty } = options;
+  const { resolveProperties, resolveVariables, addAncestorsVisibleProperty } = options;
 
   const resolvedNode = resolveNodeProperties(
-    object,
+    node,
     resolveProperties === 'all' ? undefined : resolveProperties
   ) as Record<string, unknown>;
 
@@ -65,6 +153,14 @@ const resolveAndSerializeNodeProperties = <Node extends SceneNode, const Options
     }
   }
 
+  const boundVariables = node.boundVariables;
+  if (
+    boundVariables !== undefined &&
+    (resolveVariables === 'all' || (isArray(resolveVariables) && resolveVariables.length > 0))
+  ) {
+    resolvedNode.boundVariableInstances = resolveBoundVariables(boundVariables, options);
+  }
+
   if (addAncestorsVisibleProperty) {
     resolvedNode.ancestorsVisible = ancestorsVisible;
   }
@@ -72,7 +168,6 @@ const resolveAndSerializeNodeProperties = <Node extends SceneNode, const Options
   return resolvedNode as SerializedResolvedNode<Options>;
 };
 
-// TODO: Resolve variables
 export const resolveAndFilterNodes = <const Options extends ResolverOptions>(
   nodes: readonly SceneNode[],
   options: Options,

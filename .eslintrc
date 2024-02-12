@@ -43,7 +43,7 @@
             "position": "before"
           },
           {
-            "pattern": "{.,..,../..}/**/types",
+            "pattern": "{.,..,../..}/**/type{s,Primitives}",
             "group": "type",
             "position": "after"
           }

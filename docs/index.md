@@ -36,7 +36,7 @@ const SomeComponent: FC = () => {
 export default SomeComponent;
 ```
 
-## Configuring the hook
+## Hook options
 
 The hook can be configured by passing an options object to the hook call.
 
@@ -49,9 +49,10 @@ constants.ts:
 ```typescript
 import { FigmaSelectionHookOptions } from 'figma-plugin-react-hooks/hook';
 
-export const selectionHookOptions: FigmaSelectionHookOptions = {
+// Using satisfies gives you type hints and autocomplete while retaining the exact inferred return type from the hook
+export const selectionHookOptions = {
   resolveChildrenNodes: true
-};
+} satisfies FigmaSelectionHookOptions;
 ```
 
 React app:
@@ -68,6 +69,25 @@ const SomeComponent: FC = () => {
 
   ...
 };
+```
 
-export default SomeComponent;
+### Types with custom options
+
+The library also exports a few utility types for you to use in your React components:
+
+```typescript
+import { FC } from 'react';
+
+import { FigmaSelectionHookNode } from 'figma-plugin-react-hooks/hook';
+
+import { figmaSelectionHookOptions } from './constants';
+
+// FigmaSelectionHookNode is the type of a single node returned from the hook, inferred from the options you pass to it
+interface NodeListItemProps {
+  node: FigmaSelectionHookNode<typeof figmaSelectionHookOptions>;
+}
+
+const NodeListItem: FC<NodeListItemProps> = ({ node }) => {
+  ...
+};
 ```
