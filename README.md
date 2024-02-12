@@ -38,7 +38,7 @@ const SomeComponent: FC = () => {
 export default SomeComponent;
 ```
 
-## Configuring the hook
+## Hook options
 
 The hook can be configured by passing an options object to the hook call.
 
@@ -51,9 +51,10 @@ constants.ts:
 ```typescript
 import { FigmaSelectionHookOptions } from 'figma-plugin-react-hooks/hook';
 
-export const selectionHookOptions: FigmaSelectionHookOptions = {
+// Using satisfies gives you type hints and autocomplete while retaining the exact inferred return type from the hook
+export const selectionHookOptions = {
   resolveChildrenNodes: true
-};
+} satisfies FigmaSelectionHookOptions;
 ```
 
 React app:
@@ -70,8 +71,27 @@ const SomeComponent: FC = () => {
 
   ...
 };
+```
 
-export default SomeComponent;
+### Types with custom options
+
+The library also exports a few utility types for you to use in your React components:
+
+```typescript
+import { FC } from 'react';
+
+import { FigmaSelectionHookNode } from 'figma-plugin-react-hooks/hook';
+
+import { figmaSelectionHookOptions } from './constants';
+
+// FigmaSelectionHookNode is the type of a single node returned from the hook, inferred from the options you pass to it
+interface NodeListItemProps {
+  node: FigmaSelectionHookNode<typeof figmaSelectionHookOptions>;
+}
+
+const NodeListItem: FC<NodeListItemProps> = ({ node }) => {
+  ...
+};
 ```
 
 ## Types
@@ -97,6 +117,18 @@ ___
 
 ___
 
+### BoundVariableKey
+
+Ƭ **BoundVariableKey**: keyof `NonNullable`\<`SceneNode`[``"boundVariables"``]\>
+
+___
+
+### OptSceneNodeVariables
+
+Ƭ **OptSceneNodeVariables**: readonly [`BoundVariableKey`](types.md#boundvariablekey)[] \| ``"all"``
+
+___
+
 ### FigmaSelectionHookOptions
 
 Ƭ **FigmaSelectionHookOptions**: `Object`
@@ -110,7 +142,7 @@ Example:
 ```typescript
 const options = {
   nodeTypes: ['TEXT', 'FRAME'],
-  resolveProperties: ['name', 'characters', 'children]
+  resolveProperties: ['name', 'characters', 'children']
 } satisfies FigmaSelectionHookOptions;
 ```
 
@@ -120,10 +152,38 @@ const options = {
 | :------ | :------ | :------ |
 | `nodeTypes?` | readonly `SceneNodeType`[] | Only return specific types of nodes. If left undefined, all nodes in the selection will be returned. Default: `undefined` |
 | `resolveProperties?` | [`OptSceneNodeProperties`](types.md#optscenenodeproperties) | Figma node properties are lazy-loaded, so to use any property you have to resolve it first. Resolving all node properties causes a performance hit, so you can specify which properties you want to resolve. If set to `[]`, no properties will be resolved and you will only get the ids of the nodes. Node methods (such as `getPluginData`) will never be resolved. Default: `'all'` |
-| `resolveChildren?` | `boolean` | Resolve children nodes of the selection. If used with `nodeTypes`, all nodes of the specified types will be returned as a flat array. Default: `false` |
-| `resolveVariables?` | `boolean` | Resolve bound variables of the selection. Default: `false` |
+| `resolveVariables?` | [`OptSceneNodeVariables`](types.md#optscenenodevariables) | Resolve bound variables of the selection. Similarly to `resolveProperties`, you can specify which variables you want to resolve to optimize performance. If set to `[]`, no properties will be resolved and you will only get the ids of the nodes. Default: `[]` |
+| `resolveChildren?` | `boolean` | Resolve children nodes of the selection. If `nodeTypes` is set, all nodes of the specified types will be returned as a flat array. Default: `false` |
 | `addAncestorsVisibleProperty?` | `boolean` | Add `ancestorsVisible` property to all nodes. This property is true if all ancestors of the node are visible. Default: `false` |
 | `apiOptions?` | [`RPCOptions`](types.md#rpcoptions) | Options for figma-plugin-api Default: see the RPCOptions type |
+
+___
+
+### FigmaSelectionHookNode
+
+Ƭ **FigmaSelectionHookNode**\<`Options`\>: `SerializedResolvedNode`\<`CombineObjects`\<typeof `DEFAULT_HOOK_OPTIONS`, `Options`\>\>
+
+Utility type to get the inferred type of the hook using the options object
+
+#### Type parameters
+
+| Name | Type |
+| :------ | :------ |
+| `Options` | extends [`FigmaSelectionHookOptions`](types.md#figmaselectionhookoptions) = `Record`\<`string`, `never`\> |
+
+___
+
+### FigmaSelectionHookType
+
+Ƭ **FigmaSelectionHookType**\<`Options`\>: [readonly [`FigmaSelectionHookNode`](types.md#figmaselectionhooknode)\<`Options`\>[], (`selection`: readonly `BareNode`[]) => `void`]
+
+Utility type to get the inferred return type of the hook using the options object
+
+#### Type parameters
+
+| Name | Type |
+| :------ | :------ |
+| `Options` | extends [`FigmaSelectionHookOptions`](types.md#figmaselectionhookoptions) = `Record`\<`string`, `never`\> |
 
 ## Variables
 

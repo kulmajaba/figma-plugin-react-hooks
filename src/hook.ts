@@ -2,38 +2,33 @@
 
 import { useEffect, useState } from 'react';
 
+import { DEFAULT_HOOK_OPTIONS } from './constants';
 import useMountedEffect from './useMountedEffect';
 
 import { api, listeners, setlisteners, updateApiWithOptions, updateUiApiWithOptions } from '.';
 
+import { CombineObjects } from './typePrimitives';
 import {
-  BareNode,
   FigmaSelectionHookOptions,
   FigmaSelectionListener,
-  ResolverOptions,
-  SerializedResolvedNode
+  SerializedResolvedNode,
+  FigmaSelectionHookType
 } from './types';
 
-export { FigmaSelectionHookOptions } from './types';
+export { FigmaSelectionHookOptions, FigmaSelectionHookNode, FigmaSelectionHookType } from './types';
 export { FIGMA_MIXED } from './constants';
-
-const defaultOptions = {
-  nodeTypes: undefined,
-  resolveChildren: false,
-  resolveVariables: false,
-  resolveProperties: 'all',
-  addAncestorsVisibleProperty: false
-} as const satisfies ResolverOptions;
 
 /**
  * Only one config will take presence and it will be the config of the first hook that is mounted
  */
 const useFigmaSelection = <const Options extends FigmaSelectionHookOptions>(
   hookOptions?: Options
-): [readonly SerializedResolvedNode<Options>[], (selection: readonly BareNode[]) => void] => {
-  const opts = { ...defaultOptions, ...hookOptions } as const;
+): FigmaSelectionHookType<Options> => {
+  const opts = { ...DEFAULT_HOOK_OPTIONS, ...hookOptions } as const;
 
-  const [selection, setSelection] = useState<readonly SerializedResolvedNode<Options>[]>([]);
+  const [selection, setSelection] = useState<
+    readonly SerializedResolvedNode<CombineObjects<typeof DEFAULT_HOOK_OPTIONS, Options>>[]
+  >([]);
 
   useMountedEffect(() => {
     console.warn('useFigmaSelection: changing options once mounted will not affect the behavior of the hook');
@@ -70,7 +65,10 @@ const useFigmaSelection = <const Options extends FigmaSelectionHookOptions>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return [selection as readonly SerializedResolvedNode<Options>[], api._setSelection];
+  return [
+    selection as readonly SerializedResolvedNode<CombineObjects<typeof DEFAULT_HOOK_OPTIONS, Options>>[],
+    api._setSelection
+  ];
 };
 
 export default useFigmaSelection;

@@ -1,8 +1,16 @@
-import { FIGMA_MIXED } from './constants';
-import { ApplicableNonFunctionPropertyKeys, ArrayElementUnion, NonFunctionPropertyKeys } from './typePrimitives';
+import { DEFAULT_HOOK_OPTIONS, FIGMA_MIXED } from './constants';
+
+import type { RPCOptions } from 'figma-plugin-api';
+
+import {
+  ApplicableNonFunctionPropertyKeys,
+  ArrayElementUnion,
+  CombineObjects,
+  ExtractProps,
+  NonFunctionPropertyKeys
+} from './typePrimitives';
 
 // Allow esbuild to drop the import
-import type { RPCOptions } from 'figma-plugin-api';
 
 // For typedoc
 export type { RPCOptions } from 'figma-plugin-api';
@@ -40,6 +48,10 @@ export type SceneNodePropertyKey<T extends SceneNodeType | undefined = undefined
 
 export type OptSceneNodeProperties = readonly SceneNodePropertyKey[] | 'all';
 
+export type BoundVariableKey = keyof NonNullable<SceneNode['boundVariables']>;
+
+export type OptSceneNodeVariables = readonly BoundVariableKey[] | 'all';
+
 /**
  * Use `satisfies` (for TS >= 4.9) with this type to allow for type checking the options object
  * while the type of the object remains exact.
@@ -50,7 +62,7 @@ export type OptSceneNodeProperties = readonly SceneNodePropertyKey[] | 'all';
  * ```typescript
  * const options = {
  *   nodeTypes: ['TEXT', 'FRAME'],
- *   resolveProperties: ['name', 'characters', 'children]
+ *   resolveProperties: ['name', 'characters', 'children']
  * } satisfies FigmaSelectionHookOptions;
  * ```
  */
@@ -76,19 +88,23 @@ export type FigmaSelectionHookOptions = {
    */
   resolveProperties?: OptSceneNodeProperties;
   /**
+   * Resolve bound variables of the selection.
+   *
+   * Similarly to `resolveProperties`, you can specify which variables you want to resolve to optimize performance.
+   *
+   * If set to `[]`, no properties will be resolved and you will only get the ids of the nodes.
+   *
+   * Default: `[]`
+   */
+  resolveVariables?: OptSceneNodeVariables;
+  /**
    * Resolve children nodes of the selection.
    *
-   * If used with `nodeTypes`, all nodes of the specified types will be returned as a flat array.
+   * If `nodeTypes` is set, all nodes of the specified types will be returned as a flat array.
    *
    * Default: `false`
    */
   resolveChildren?: boolean;
-  /**
-   * Resolve bound variables of the selection.
-   *
-   * Default: `false`
-   */
-  resolveVariables?: boolean;
   /**
    * Add `ancestorsVisible` property to all nodes.
    *
@@ -107,8 +123,12 @@ export type FigmaSelectionHookOptions = {
 
 /**
  * @internal
+ * With `"exactOptionalPropertyTypes": true` in tsconfig, this type would work by just using `Required<Omit<FigmaSelectionHookOptions, 'apiOptions'>>`.
+ *
+ * A lot of projects are not set up with it however, so this has better compatibility
  */
-export type ResolverOptions = Omit<FigmaSelectionHookOptions, 'apiOptions'>;
+export type ResolverOptions = Required<Omit<FigmaSelectionHookOptions, 'nodeTypes' | 'apiOptions'>> &
+  Pick<FigmaSelectionHookOptions, 'nodeTypes'>;
 
 type SerializedNodeProperty<
   Prop,
@@ -173,8 +193,49 @@ type AncestorsVisibleMixin = {
 /**
  * @internal
  */
-type ResolveVariablesMixin = {
-  boundVariableInstances: readonly Variable[];
+export type ReplaceTypeInObject<O extends object, T, R> = {
+  [K in keyof O]?: O[K] extends T | undefined
+    ? R
+    : O[K] extends T[] | undefined
+      ? R[]
+      : O[K] extends object | undefined
+        ? ReplaceTypeInObject<NonNullable<O[K]>, T, R>
+        : O[K];
+};
+
+/**
+ * @internal
+ */
+export type BoundVariables = NonNullable<SceneNode['boundVariables']>;
+
+/**
+ * @internal
+ */
+export type BoundVariablesBareAliases = ExtractProps<BoundVariables, Readonly<VariableAlias> | undefined>;
+
+/**
+ * @internal
+ */
+export type BoundVariablesAliasArrays = ExtractProps<BoundVariableInstances, readonly unknown[] | undefined>;
+
+/**
+ * @internal
+ */
+export type BoundVariableInstances = ReplaceTypeInObject<
+  NonNullable<SceneNode['boundVariables']>,
+  VariableAlias,
+  Variable
+>;
+
+/**
+ * @internal
+ */
+type ResolveVariablesMixin<Options extends ResolverOptions> = {
+  boundVariableInstances?: Options['resolveVariables'] extends readonly BoundVariableKey[]
+    ? Pick<BoundVariableInstances, ArrayElementUnion<Options['resolveVariables']>>
+    : Options['resolveVariables'] extends 'all'
+      ? BoundVariableInstances
+      : never;
 };
 
 /**
@@ -183,10 +244,10 @@ type ResolveVariablesMixin = {
  */
 export type SerializedResolvedNode<Options extends ResolverOptions> =
   Options['addAncestorsVisibleProperty'] extends true
-    ? Options['resolveVariables'] extends true
+    ? Options['resolveVariables'] extends OptSceneNodeVariables
       ? SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options> &
           AncestorsVisibleMixin &
-          ResolveVariablesMixin
+          ResolveVariablesMixin<Options>
       : SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options> & AncestorsVisibleMixin
     : SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options>;
 
@@ -194,3 +255,17 @@ export type SerializedResolvedNode<Options extends ResolverOptions> =
  * @internal
  */
 export type FigmaSelectionListener = (selection: readonly SerializedResolvedNode<ResolverOptions>[]) => void;
+
+/**
+ * Utility type to get the inferred type of the hook using the options object
+ */
+export type FigmaSelectionHookNode<Options extends FigmaSelectionHookOptions = Record<string, never>> =
+  SerializedResolvedNode<CombineObjects<typeof DEFAULT_HOOK_OPTIONS, Options>>;
+
+/**
+ * Utility type to get the inferred return type of the hook using the options object
+ */
+export type FigmaSelectionHookType<Options extends FigmaSelectionHookOptions = Record<string, never>> = [
+  readonly FigmaSelectionHookNode<Options>[],
+  (selection: readonly BareNode[]) => void
+];

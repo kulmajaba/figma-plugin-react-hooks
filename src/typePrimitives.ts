@@ -1,13 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-types */
 
-/**
- * @internal
- * https://github.com/microsoft/TypeScript/issues/17002#issuecomment-1529056512
- */
-export type ArrayType<T> = Extract<
-  true extends T & false ? unknown[] : T extends readonly unknown[] ? T : unknown[],
-  T
->;
+export type Mutable<T> = { -readonly [P in keyof T]: T[P] };
 
 /**
  * @internal
@@ -42,3 +35,20 @@ export type ApplicableNonFunctionPropertyKeys<T extends object, K extends string
     ? never
     : K
   : never;
+
+export type ExtractProps<T extends object, P, K extends keyof T = keyof T> = Pick<
+  T,
+  K extends keyof T ? (T[K] extends P ? K : never) : never
+>;
+
+export type CombineObjects<A extends object, B extends object> = {
+  [K in keyof A | keyof B]: K extends keyof B
+    ? B[K] extends undefined
+      ? K extends keyof A
+        ? A[K]
+        : never
+      : NonNullable<B[K]>
+    : K extends keyof A
+      ? A[K]
+      : never;
+};
