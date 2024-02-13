@@ -50,6 +50,7 @@
     "react": ">=17.0.0"
   },
   "devDependencies": {
+    "@figma/eslint-plugin-figma-plugins": "*",
     "@figma/plugin-typings": "*",
     "@types/react": "^18.2.48",
     "@typescript-eslint/eslint-plugin": "^6.19.1",
