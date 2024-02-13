@@ -4,6 +4,7 @@ import { expectType } from 'tsd';
 
 import {
   ApplicableNonFunctionPropertyKeys,
+  ArrayHasElements,
   CombineObjects,
   ExtractProps,
   NonFunctionPropertyKeys
@@ -50,6 +51,8 @@ expectType<
       resolveChildren: false;
       resolveVariables: [];
       addAncestorsVisibleProperty: false;
+      pluginDataKeys: [];
+      sharedPluginDataKeys: [];
     }
   >
 );
@@ -69,6 +72,8 @@ expectType<
     resolveChildren: false;
     resolveVariables: [];
     addAncestorsVisibleProperty: false;
+    pluginDataKeys: [];
+    sharedPluginDataKeys: [];
   }>
 );
 
@@ -93,6 +98,8 @@ expectType<
     resolveChildren: false;
     resolveVariables: [];
     addAncestorsVisibleProperty: false;
+    pluginDataKeys: [];
+    sharedPluginDataKeys: [];
   }>
 );
 
@@ -112,3 +119,6 @@ expectType<{
   c: boolean;
   d: string;
 }>({} as CombineObjects<{ a: string; b: number; d: string }, { a?: number; b: undefined; c: boolean }>);
+
+expectType<true>(false as ArrayHasElements<[1, 2, 3]>);
+expectType<false>(false as ArrayHasElements<[]>);

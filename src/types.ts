@@ -5,6 +5,7 @@ import type { RPCOptions } from 'figma-plugin-api';
 import {
   ApplicableNonFunctionPropertyKeys,
   ArrayElementUnion,
+  ArrayHasElements,
   CombineObjects,
   ExtractProps,
   NonFunctionPropertyKeys
@@ -75,6 +76,7 @@ export type FigmaSelectionHookOptions = {
    * Default: `undefined`
    */
   nodeTypes?: readonly SceneNodeType[] | undefined;
+
   /**
    * Figma node properties are lazy-loaded, so to use any property you have to resolve it first.
    *
@@ -87,6 +89,7 @@ export type FigmaSelectionHookOptions = {
    * Default: `'all'`
    */
   resolveProperties?: OptSceneNodeProperties;
+
   /**
    * Resolve bound variables of the selection.
    *
@@ -97,6 +100,7 @@ export type FigmaSelectionHookOptions = {
    * Default: `[]`
    */
   resolveVariables?: OptSceneNodeVariables;
+
   /**
    * Resolve children nodes of the selection.
    *
@@ -105,6 +109,7 @@ export type FigmaSelectionHookOptions = {
    * Default: `false`
    */
   resolveChildren?: boolean;
+
   /**
    * Add `ancestorsVisible` property to all nodes.
    *
@@ -113,6 +118,21 @@ export type FigmaSelectionHookOptions = {
    * Default: `false`
    */
   addAncestorsVisibleProperty?: boolean;
+
+  /**
+   * Get the corresponding plugin data for all nodes.
+   *
+   * Default: `[]`
+   */
+  pluginDataKeys?: string[];
+
+  /**
+   * Get the corresponding shared plugin data for all nodes.
+   *
+   * Default: `[]`
+   */
+  sharedPluginDataKeys?: string[];
+
   /**
    * Options for figma-plugin-api
    *
@@ -186,9 +206,31 @@ type SerializedResolvedNodeBase<Node extends SceneNode, Options extends Resolver
 /**
  * @internal
  */
-type AncestorsVisibleMixin = {
-  ancestorsVisible: boolean;
-};
+type AncestorsVisibleMixin<Options extends ResolverOptions> = Options['addAncestorsVisibleProperty'] extends true
+  ? {
+      ancestorsVisible: boolean;
+    }
+  : unknown;
+
+/**
+ * @internal
+ */
+type PluginDataMixin<Options extends ResolverOptions> =
+  ArrayHasElements<Options['sharedPluginDataKeys']> extends true
+    ? {
+        pluginData: Record<ArrayElementUnion<Options['pluginDataKeys']>, string>;
+      }
+    : unknown;
+
+/**
+ * @internal
+ */
+type SharedPluginDataMixin<Options extends ResolverOptions> =
+  ArrayHasElements<Options['sharedPluginDataKeys']> extends true
+    ? {
+        sharedPluginData: Record<ArrayElementUnion<Options['sharedPluginDataKeys']>, string>;
+      }
+    : unknown;
 
 /**
  * @internal
@@ -230,26 +272,29 @@ export type BoundVariableInstances = ReplaceTypeInObject<
 /**
  * @internal
  */
-type ResolveVariablesMixin<Options extends ResolverOptions> = {
-  boundVariableInstances?: Options['resolveVariables'] extends readonly BoundVariableKey[]
-    ? Pick<BoundVariableInstances, ArrayElementUnion<Options['resolveVariables']>>
-    : Options['resolveVariables'] extends 'all'
-      ? BoundVariableInstances
-      : never;
-};
+type ResolveVariablesMixin<Options extends ResolverOptions> =
+  Options['resolveVariables'] extends readonly BoundVariableKey[]
+    ? ArrayHasElements<Options['resolveVariables']> extends true
+      ? {
+          boundVariableInstances?: Pick<BoundVariableInstances, ArrayElementUnion<Options['resolveVariables']>>;
+        }
+      : unknown
+    : {
+        boundVariableInstances?: BoundVariableInstances;
+      };
 
 /**
  * @internal
  * All Figma nodes are converted to this type for serialization and sending to the plugin UI
  */
-export type SerializedResolvedNode<Options extends ResolverOptions> =
-  Options['addAncestorsVisibleProperty'] extends true
-    ? Options['resolveVariables'] extends OptSceneNodeVariables
-      ? SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options> &
-          AncestorsVisibleMixin &
-          ResolveVariablesMixin<Options>
-      : SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options> & AncestorsVisibleMixin
-    : SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options>;
+export type SerializedResolvedNode<Options extends ResolverOptions> = SerializedResolvedNodeBase<
+  SceneNodeFromTypes<Options['nodeTypes']>,
+  Options
+> &
+  AncestorsVisibleMixin<Options> &
+  ResolveVariablesMixin<Options> &
+  PluginDataMixin<Options> &
+  SharedPluginDataMixin<Options>;
 
 /**
  * @internal
