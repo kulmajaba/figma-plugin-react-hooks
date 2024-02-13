@@ -52,7 +52,7 @@ expectType<
       resolveVariables: [];
       addAncestorsVisibleProperty: false;
       pluginDataKeys: [];
-      sharedPluginDataKeys: [];
+      sharedPluginDataKeys: Record<string, never>;
     }
   >
 );
@@ -73,7 +73,7 @@ expectType<
     resolveVariables: [];
     addAncestorsVisibleProperty: false;
     pluginDataKeys: [];
-    sharedPluginDataKeys: [];
+    sharedPluginDataKeys: Record<string, never>;
   }>
 );
 
@@ -99,7 +99,53 @@ expectType<
     resolveVariables: [];
     addAncestorsVisibleProperty: false;
     pluginDataKeys: [];
-    sharedPluginDataKeys: [];
+    sharedPluginDataKeys: Record<string, never>;
+  }>
+);
+
+// SerializedResolvedNode should return pluginData if configured
+expectType<
+  {
+    type: 'TEXT';
+    id: string;
+  } & {
+    characters: string;
+  } & {
+    pluginData: Record<'test', string>;
+  }
+>(
+  {} as SerializedResolvedNode<{
+    nodeTypes: ['TEXT'];
+    resolveProperties: ['characters'];
+    resolveChildren: false;
+    resolveVariables: [];
+    addAncestorsVisibleProperty: false;
+    pluginDataKeys: ['test'];
+    sharedPluginDataKeys: Record<string, never>;
+  }>
+);
+
+// SerializedResolvedNode should return sharedPluginData if configured
+expectType<
+  {
+    type: 'TEXT';
+    id: string;
+  } & {
+    characters: string;
+  } & {
+    sharedPluginData: {
+      testSpace: Record<'test', string>;
+    };
+  }
+>(
+  {} as SerializedResolvedNode<{
+    nodeTypes: ['TEXT'];
+    resolveProperties: ['characters'];
+    resolveChildren: false;
+    resolveVariables: [];
+    addAncestorsVisibleProperty: false;
+    pluginDataKeys: [];
+    sharedPluginDataKeys: { testSpace: ['test'] };
   }>
 );
 

@@ -15,5 +15,5 @@ export const DEFAULT_HOOK_OPTIONS = {
   resolveProperties: 'all',
   addAncestorsVisibleProperty: false,
   pluginDataKeys: [],
-  sharedPluginDataKeys: []
+  sharedPluginDataKeys: {}
 } as const satisfies ResolverOptions;

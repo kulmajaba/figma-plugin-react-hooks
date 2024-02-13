@@ -52,11 +52,11 @@ const changesApplyToSelectedNodesOrDescendants = (e: DocumentChangeEvent, nodes:
 
   const descendants: SceneNode[] = [];
 
-  nodes.forEach((node) => {
+  for (const node of nodes) {
     if (nodeCanHaveChildren(node)) {
       descendants.push(...node.children);
     }
-  });
+  }
 
   if (descendants.length === 0) {
     return false;

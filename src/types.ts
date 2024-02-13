@@ -34,7 +34,6 @@ export type SceneNodeFromTypes<T extends readonly SceneNodeType[] | undefined = 
     ExtractedSceneNode<ArrayElementUnion<T>>;
 
 /**
- * @internal
  * Utility type to get only matching node types from the SceneNode union type.
  */
 type ExtractedSceneNode<T extends SceneNodeType> = Extract<SceneNode, { type: T }>;
@@ -52,6 +51,8 @@ export type OptSceneNodeProperties = readonly SceneNodePropertyKey[] | 'all';
 export type BoundVariableKey = keyof NonNullable<SceneNode['boundVariables']>;
 
 export type OptSceneNodeVariables = readonly BoundVariableKey[] | 'all';
+
+export type OptSharedPluginDataKeys = Record<string, string[]>;
 
 /**
  * Use `satisfies` (for TS >= 4.9) with this type to allow for type checking the options object
@@ -129,9 +130,11 @@ export type FigmaSelectionHookOptions = {
   /**
    * Get the corresponding shared plugin data for all nodes.
    *
-   * Default: `[]`
+   * The object keys are treated as namespaces and the array values as keys.
+   *
+   * Default: `{}`
    */
-  sharedPluginDataKeys?: string[];
+  sharedPluginDataKeys?: OptSharedPluginDataKeys;
 
   /**
    * Options for figma-plugin-api
@@ -196,27 +199,18 @@ export type ResolvedNode<
     : ApplicableNonFunctionPropertyKeys<Node, SceneNodePropertyKey>
 >;
 
-/**
- * @internal
- */
 type SerializedResolvedNodeBase<Node extends SceneNode, Options extends ResolverOptions> = Node extends SceneNode
   ? SerializedNode<Node, Options>
   : never;
 
-/**
- * @internal
- */
 type AncestorsVisibleMixin<Options extends ResolverOptions> = Options['addAncestorsVisibleProperty'] extends true
   ? {
       ancestorsVisible: boolean;
     }
   : unknown;
 
-/**
- * @internal
- */
 type PluginDataMixin<Options extends ResolverOptions> =
-  ArrayHasElements<Options['sharedPluginDataKeys']> extends true
+  ArrayHasElements<Options['pluginDataKeys']> extends true
     ? {
         pluginData: Record<ArrayElementUnion<Options['pluginDataKeys']>, string>;
       }
@@ -225,12 +219,16 @@ type PluginDataMixin<Options extends ResolverOptions> =
 /**
  * @internal
  */
+export type SharedPluginData<K extends OptSharedPluginDataKeys> = {
+  [N in keyof K]: Record<ArrayElementUnion<K[N]>, string>;
+};
+
 type SharedPluginDataMixin<Options extends ResolverOptions> =
-  ArrayHasElements<Options['sharedPluginDataKeys']> extends true
-    ? {
-        sharedPluginData: Record<ArrayElementUnion<Options['sharedPluginDataKeys']>, string>;
-      }
-    : unknown;
+  Options['sharedPluginDataKeys'] extends Record<string, never>
+    ? unknown
+    : {
+        sharedPluginData: SharedPluginData<Options['sharedPluginDataKeys']>;
+      };
 
 /**
  * @internal
@@ -269,9 +267,6 @@ export type BoundVariableInstances = ReplaceTypeInObject<
   Variable
 >;
 
-/**
- * @internal
- */
 type ResolveVariablesMixin<Options extends ResolverOptions> =
   Options['resolveVariables'] extends readonly BoundVariableKey[]
     ? ArrayHasElements<Options['resolveVariables']> extends true
