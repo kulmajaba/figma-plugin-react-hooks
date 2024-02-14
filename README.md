@@ -129,6 +129,12 @@ ___
 
 ___
 
+### OptSharedPluginDataKeys
+
+Ƭ **OptSharedPluginDataKeys**: `Record`\<`string`, `string`[]\>
+
+___
+
 ### FigmaSelectionHookOptions
 
 Ƭ **FigmaSelectionHookOptions**: `Object`
@@ -155,6 +161,8 @@ const options = {
 | `resolveVariables?` | [`OptSceneNodeVariables`](types.md#optscenenodevariables) | Resolve bound variables of the selection. Similarly to `resolveProperties`, you can specify which variables you want to resolve to optimize performance. If set to `[]`, no properties will be resolved and you will only get the ids of the nodes. Default: `[]` |
 | `resolveChildren?` | `boolean` | Resolve children nodes of the selection. If `nodeTypes` is set, all nodes of the specified types will be returned as a flat array. Default: `false` |
 | `addAncestorsVisibleProperty?` | `boolean` | Add `ancestorsVisible` property to all nodes. This property is true if all ancestors of the node are visible. Default: `false` |
+| `pluginDataKeys?` | `string`[] | Get the corresponding plugin data for all nodes. Default: `[]` |
+| `sharedPluginDataKeys?` | [`OptSharedPluginDataKeys`](types.md#optsharedplugindatakeys) | Get the corresponding shared plugin data for all nodes. The object keys are treated as namespaces and the array values as keys. Default: `{}` |
 | `apiOptions?` | [`RPCOptions`](types.md#rpcoptions) | Options for figma-plugin-api Default: see the RPCOptions type |
 
 ___

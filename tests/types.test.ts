@@ -4,6 +4,7 @@ import { expectType } from 'tsd';
 
 import {
   ApplicableNonFunctionPropertyKeys,
+  ArrayHasElements,
   CombineObjects,
   ExtractProps,
   NonFunctionPropertyKeys
@@ -50,6 +51,8 @@ expectType<
       resolveChildren: false;
       resolveVariables: [];
       addAncestorsVisibleProperty: false;
+      pluginDataKeys: [];
+      sharedPluginDataKeys: Record<string, never>;
     }
   >
 );
@@ -69,6 +72,8 @@ expectType<
     resolveChildren: false;
     resolveVariables: [];
     addAncestorsVisibleProperty: false;
+    pluginDataKeys: [];
+    sharedPluginDataKeys: Record<string, never>;
   }>
 );
 
@@ -93,6 +98,54 @@ expectType<
     resolveChildren: false;
     resolveVariables: [];
     addAncestorsVisibleProperty: false;
+    pluginDataKeys: [];
+    sharedPluginDataKeys: Record<string, never>;
+  }>
+);
+
+// SerializedResolvedNode should return pluginData if configured
+expectType<
+  {
+    type: 'TEXT';
+    id: string;
+  } & {
+    characters: string;
+  } & {
+    pluginData: Record<'test', string>;
+  }
+>(
+  {} as SerializedResolvedNode<{
+    nodeTypes: ['TEXT'];
+    resolveProperties: ['characters'];
+    resolveChildren: false;
+    resolveVariables: [];
+    addAncestorsVisibleProperty: false;
+    pluginDataKeys: ['test'];
+    sharedPluginDataKeys: Record<string, never>;
+  }>
+);
+
+// SerializedResolvedNode should return sharedPluginData if configured
+expectType<
+  {
+    type: 'TEXT';
+    id: string;
+  } & {
+    characters: string;
+  } & {
+    sharedPluginData: {
+      testSpace: Record<'test', string>;
+    };
+  }
+>(
+  {} as SerializedResolvedNode<{
+    nodeTypes: ['TEXT'];
+    resolveProperties: ['characters'];
+    resolveChildren: false;
+    resolveVariables: [];
+    addAncestorsVisibleProperty: false;
+    pluginDataKeys: [];
+    sharedPluginDataKeys: { testSpace: ['test'] };
   }>
 );
 
@@ -112,3 +165,6 @@ expectType<{
   c: boolean;
   d: string;
 }>({} as CombineObjects<{ a: string; b: number; d: string }, { a?: number; b: undefined; c: boolean }>);
+
+expectType<true>(false as ArrayHasElements<[1, 2, 3]>);
+expectType<false>(false as ArrayHasElements<[]>);

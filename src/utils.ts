@@ -6,10 +6,12 @@ import {
   BoundVariableInstances,
   BoundVariablesAliasArrays,
   BoundVariablesBareAliases,
+  OptSharedPluginDataKeys,
   ResolvedNode,
   ResolverOptions,
   SceneNodePropertyKey,
-  SerializedResolvedNode
+  SerializedResolvedNode,
+  SharedPluginData
 } from './types';
 
 const defaultNodePropertyGetterFilter = <Node extends SceneNode>(key: keyof Node, node: Node): boolean => {
@@ -103,12 +105,12 @@ const resolveBoundVariables = <
         const aliases: VariableAlias[] = boundVariable;
         const variableInstances: Variable[] = [];
 
-        aliases.forEach((variableAlias) => {
+        for (const variableAlias of aliases) {
           const variable = figma.variables.getVariableById(variableAlias.id);
           if (variable) {
             variableInstances.push(resolveVariableProperties(variable));
           }
-        });
+        }
 
         variableInstances.length > 0 &&
           (result[boundVariableKey as keyof BoundVariablesAliasArrays] = variableInstances);
@@ -135,12 +137,42 @@ const resolveBoundVariables = <
   return result;
 };
 
+const resolvePluginData = (node: SceneNode, pluginDataKeys: string[]): Record<string, string> => {
+  const pluginData: Record<string, string> = {};
+
+  for (const key of pluginDataKeys) {
+    const value = node.getPluginData(key);
+    if (value !== undefined) {
+      pluginData[key] = value;
+    }
+  }
+
+  return pluginData;
+};
+
+const resolveSharedPluginData = <K extends OptSharedPluginDataKeys>(
+  node: SceneNode,
+  sharedPluginDataKeys: K
+): SharedPluginData<K> => {
+  const sharedPluginData: Partial<Record<keyof K, Record<string, string>>> = {};
+
+  for (const namespace of strictObjectKeys(sharedPluginDataKeys)) {
+    sharedPluginData[namespace] = {};
+    for (const key of sharedPluginDataKeys[namespace]) {
+      (sharedPluginData[namespace] as Record<string, string>)[key] = node.getSharedPluginData(namespace as string, key);
+    }
+  }
+
+  return sharedPluginData as SharedPluginData<K>;
+};
+
 const resolveAndSerializeNodeProperties = <Node extends SceneNode, const Options extends ResolverOptions>(
   node: Node,
   options: Options,
   ancestorsVisible: boolean
 ): SerializedResolvedNode<Options> => {
-  const { resolveProperties, resolveVariables, addAncestorsVisibleProperty } = options;
+  const { resolveProperties, resolveVariables, addAncestorsVisibleProperty, pluginDataKeys, sharedPluginDataKeys } =
+    options;
 
   const resolvedNode = resolveNodeProperties(
     node,
@@ -153,16 +185,23 @@ const resolveAndSerializeNodeProperties = <Node extends SceneNode, const Options
     }
   }
 
-  const boundVariables = node.boundVariables;
   if (
-    boundVariables !== undefined &&
+    node.boundVariables !== undefined &&
     (resolveVariables === 'all' || (isArray(resolveVariables) && resolveVariables.length > 0))
   ) {
-    resolvedNode.boundVariableInstances = resolveBoundVariables(boundVariables, options);
+    resolvedNode.boundVariableInstances = resolveBoundVariables(node.boundVariables, options);
   }
 
   if (addAncestorsVisibleProperty) {
     resolvedNode.ancestorsVisible = ancestorsVisible;
+  }
+
+  if (pluginDataKeys.length > 0) {
+    resolvedNode.pluginData = resolvePluginData(node, pluginDataKeys);
+  }
+
+  if (Object.keys(sharedPluginDataKeys).length > 0) {
+    resolvedNode.sharedPluginData = resolveSharedPluginData(node, sharedPluginDataKeys);
   }
 
   return resolvedNode as SerializedResolvedNode<Options>;
@@ -177,15 +216,15 @@ export const resolveAndFilterNodes = <const Options extends ResolverOptions>(
   const { nodeTypes, resolveChildren } = options;
 
   if (nodeTypes !== undefined) {
-    nodes.forEach((node) => {
+    for (const node of nodes) {
       if (nodeTypes.includes(node.type)) {
         result.push(resolveAndSerializeNodeProperties(node, options, ancestorsVisible && node.visible));
       } else if (nodeCanHaveChildren(node) && resolveChildren) {
         result.push(...resolveAndFilterNodes(node.children, options, ancestorsVisible && node.visible));
       }
-    });
+    }
   } else {
-    nodes.forEach((node) => {
+    for (const node of nodes) {
       if (nodeCanHaveChildren(node) && resolveChildren) {
         const newNode = {
           ...resolveAndSerializeNodeProperties(node, options, ancestorsVisible && node.visible),
@@ -195,7 +234,7 @@ export const resolveAndFilterNodes = <const Options extends ResolverOptions>(
       } else {
         result.push(resolveAndSerializeNodeProperties(node, options, ancestorsVisible && node.visible));
       }
-    });
+    }
   }
 
   return result;

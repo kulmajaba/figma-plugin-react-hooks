@@ -5,6 +5,7 @@ import type { RPCOptions } from 'figma-plugin-api';
 import {
   ApplicableNonFunctionPropertyKeys,
   ArrayElementUnion,
+  ArrayHasElements,
   CombineObjects,
   ExtractProps,
   NonFunctionPropertyKeys
@@ -33,7 +34,6 @@ export type SceneNodeFromTypes<T extends readonly SceneNodeType[] | undefined = 
     ExtractedSceneNode<ArrayElementUnion<T>>;
 
 /**
- * @internal
  * Utility type to get only matching node types from the SceneNode union type.
  */
 type ExtractedSceneNode<T extends SceneNodeType> = Extract<SceneNode, { type: T }>;
@@ -51,6 +51,8 @@ export type OptSceneNodeProperties = readonly SceneNodePropertyKey[] | 'all';
 export type BoundVariableKey = keyof NonNullable<SceneNode['boundVariables']>;
 
 export type OptSceneNodeVariables = readonly BoundVariableKey[] | 'all';
+
+export type OptSharedPluginDataKeys = Record<string, string[]>;
 
 /**
  * Use `satisfies` (for TS >= 4.9) with this type to allow for type checking the options object
@@ -75,6 +77,7 @@ export type FigmaSelectionHookOptions = {
    * Default: `undefined`
    */
   nodeTypes?: readonly SceneNodeType[] | undefined;
+
   /**
    * Figma node properties are lazy-loaded, so to use any property you have to resolve it first.
    *
@@ -87,6 +90,7 @@ export type FigmaSelectionHookOptions = {
    * Default: `'all'`
    */
   resolveProperties?: OptSceneNodeProperties;
+
   /**
    * Resolve bound variables of the selection.
    *
@@ -97,6 +101,7 @@ export type FigmaSelectionHookOptions = {
    * Default: `[]`
    */
   resolveVariables?: OptSceneNodeVariables;
+
   /**
    * Resolve children nodes of the selection.
    *
@@ -105,6 +110,7 @@ export type FigmaSelectionHookOptions = {
    * Default: `false`
    */
   resolveChildren?: boolean;
+
   /**
    * Add `ancestorsVisible` property to all nodes.
    *
@@ -113,6 +119,23 @@ export type FigmaSelectionHookOptions = {
    * Default: `false`
    */
   addAncestorsVisibleProperty?: boolean;
+
+  /**
+   * Get the corresponding plugin data for all nodes.
+   *
+   * Default: `[]`
+   */
+  pluginDataKeys?: string[];
+
+  /**
+   * Get the corresponding shared plugin data for all nodes.
+   *
+   * The object keys are treated as namespaces and the array values as keys.
+   *
+   * Default: `{}`
+   */
+  sharedPluginDataKeys?: OptSharedPluginDataKeys;
+
   /**
    * Options for figma-plugin-api
    *
@@ -176,19 +199,36 @@ export type ResolvedNode<
     : ApplicableNonFunctionPropertyKeys<Node, SceneNodePropertyKey>
 >;
 
-/**
- * @internal
- */
 type SerializedResolvedNodeBase<Node extends SceneNode, Options extends ResolverOptions> = Node extends SceneNode
   ? SerializedNode<Node, Options>
   : never;
 
+type AncestorsVisibleMixin<Options extends ResolverOptions> = Options['addAncestorsVisibleProperty'] extends true
+  ? {
+      ancestorsVisible: boolean;
+    }
+  : unknown;
+
+type PluginDataMixin<Options extends ResolverOptions> =
+  ArrayHasElements<Options['pluginDataKeys']> extends true
+    ? {
+        pluginData: Record<ArrayElementUnion<Options['pluginDataKeys']>, string>;
+      }
+    : unknown;
+
 /**
  * @internal
  */
-type AncestorsVisibleMixin = {
-  ancestorsVisible: boolean;
+export type SharedPluginData<K extends OptSharedPluginDataKeys> = {
+  [N in keyof K]: Record<ArrayElementUnion<K[N]>, string>;
 };
+
+type SharedPluginDataMixin<Options extends ResolverOptions> =
+  Options['sharedPluginDataKeys'] extends Record<string, never>
+    ? unknown
+    : {
+        sharedPluginData: SharedPluginData<Options['sharedPluginDataKeys']>;
+      };
 
 /**
  * @internal
@@ -227,29 +267,29 @@ export type BoundVariableInstances = ReplaceTypeInObject<
   Variable
 >;
 
-/**
- * @internal
- */
-type ResolveVariablesMixin<Options extends ResolverOptions> = {
-  boundVariableInstances?: Options['resolveVariables'] extends readonly BoundVariableKey[]
-    ? Pick<BoundVariableInstances, ArrayElementUnion<Options['resolveVariables']>>
-    : Options['resolveVariables'] extends 'all'
-      ? BoundVariableInstances
-      : never;
-};
+type ResolveVariablesMixin<Options extends ResolverOptions> =
+  Options['resolveVariables'] extends readonly BoundVariableKey[]
+    ? ArrayHasElements<Options['resolveVariables']> extends true
+      ? {
+          boundVariableInstances?: Pick<BoundVariableInstances, ArrayElementUnion<Options['resolveVariables']>>;
+        }
+      : unknown
+    : {
+        boundVariableInstances?: BoundVariableInstances;
+      };
 
 /**
  * @internal
  * All Figma nodes are converted to this type for serialization and sending to the plugin UI
  */
-export type SerializedResolvedNode<Options extends ResolverOptions> =
-  Options['addAncestorsVisibleProperty'] extends true
-    ? Options['resolveVariables'] extends OptSceneNodeVariables
-      ? SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options> &
-          AncestorsVisibleMixin &
-          ResolveVariablesMixin<Options>
-      : SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options> & AncestorsVisibleMixin
-    : SerializedResolvedNodeBase<SceneNodeFromTypes<Options['nodeTypes']>, Options>;
+export type SerializedResolvedNode<Options extends ResolverOptions> = SerializedResolvedNodeBase<
+  SceneNodeFromTypes<Options['nodeTypes']>,
+  Options
+> &
+  AncestorsVisibleMixin<Options> &
+  ResolveVariablesMixin<Options> &
+  PluginDataMixin<Options> &
+  SharedPluginDataMixin<Options>;
 
 /**
  * @internal

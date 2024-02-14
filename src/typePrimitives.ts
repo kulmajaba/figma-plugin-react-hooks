@@ -52,3 +52,5 @@ export type CombineObjects<A extends object, B extends object> = {
       ? A[K]
       : never;
 };
+
+export type ArrayHasElements<T extends readonly unknown[]> = T extends readonly never[] ? false : true;
