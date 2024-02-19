@@ -38,9 +38,6 @@ const resolveNodeProperties = <Node extends SceneNode, const Keys extends readon
   const getterKeys = strictObjectKeys(descriptors);
   let getters = getterKeys.filter((key) => typeof descriptors[key].get === 'function');
 
-  // type has to be included manually as it doesn't have a getter but isn't a static property either
-  getters.push('type');
-
   if (propertyKeys) {
     getters = getters.filter((key) => propertyKeys.includes(key as SceneNodePropertyKey));
   }
@@ -48,7 +45,8 @@ const resolveNodeProperties = <Node extends SceneNode, const Keys extends readon
   getters = getters.filter((key) => defaultNodePropertyGetterFilter(key, node));
 
   const objectWithProperties = {
-    id: node.id
+    id: node.id,
+    type: node.type
   } as Node;
 
   for (const getter of getters) {
