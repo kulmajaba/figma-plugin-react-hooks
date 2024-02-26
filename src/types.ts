@@ -58,7 +58,7 @@ export type OptSharedPluginDataKeys = Record<string, string[]>;
  * Use `satisfies` (for TS >= 4.9) with this type to allow for type checking the options object
  * while the type of the object remains exact.
  *
- * This allows us to infer the type of the returned nodes correctly.
+ * This allows the hook to infer the type of the returned nodes correctly.
  *
  * Example:
  * ```typescript
@@ -153,17 +153,16 @@ export type FigmaSelectionHookOptions = {
 export type ResolverOptions = Required<Omit<FigmaSelectionHookOptions, 'nodeTypes' | 'apiOptions'>> &
   Pick<FigmaSelectionHookOptions, 'nodeTypes'>;
 
-type SerializedNodeProperty<
-  Prop,
-  Node extends SceneNode,
-  Options extends ResolverOptions
-> = Prop extends PluginAPI['mixed']
+// TODO: Add mainComponent resolving for component instances
+type SerializedNodeProperty<Prop, Options extends ResolverOptions> = Prop extends PluginAPI['mixed']
   ? typeof FIGMA_MIXED
   : Prop extends readonly SceneNode[]
     ? Options['resolveChildren'] extends true
-      ? readonly SerializedNode<Node, Options>[]
+      ? readonly SerializedNode<SceneNodeFromTypes<Options['nodeTypes']>, Options>[]
       : readonly BareNode[]
-    : Prop;
+    : Prop extends SceneNode
+      ? BareNode
+      : Prop;
 
 type ApplicableNodeKeys<
   Node extends SceneNode,
@@ -172,18 +171,42 @@ type ApplicableNodeKeys<
   ? ApplicableNonFunctionPropertyKeys<Node, ArrayElementUnion<Properties>>
   : NonFunctionPropertyKeys<Node>;
 
+type ResolvePropertiesDefined<
+  Node extends SceneNode,
+  Options extends ResolverOptions
+> = Options['resolveProperties'] extends 'all'
+  ? true
+  : Options['resolveProperties'] extends SceneNodePropertyKey[]
+    ? ApplicableNodeKeys<Node, Options['resolveProperties']> extends never
+      ? false
+      : true
+    : false;
+
 /**
  * @internal
  */
+// TODO: Ensure the children prop gets picked up even if it's not included in resolveProperties
+/*
+& Options['resolveChildren'] extends true
+    ?
+      Node extends ChildrenMixin
+      ? {
+          children: SerializedNodeProperty<Node['children'], Options>;
+        }
+      : unknown
+    : unknown
+*/
 export type SerializedNode<Node extends SceneNode, Options extends ResolverOptions> = Node extends SceneNode
   ? {
       type: Node['type'];
       id: Node['id'];
-    } & {
-      [Key in Options['resolveProperties'] extends SceneNodePropertyKey[]
-        ? ApplicableNodeKeys<Node, Options['resolveProperties']>
-        : keyof Node]: SerializedNodeProperty<Node[Key], Node, Options>;
-    }
+    } & (ResolvePropertiesDefined<Node, Options> extends true
+      ? {
+          [Key in Options['resolveProperties'] extends SceneNodePropertyKey[]
+            ? ApplicableNodeKeys<Node, Options['resolveProperties']>
+            : keyof Node]: SerializedNodeProperty<Node[Key], Options>;
+        }
+      : unknown)
   : never;
 
 /**
@@ -199,7 +222,10 @@ export type ResolvedNode<
     : ApplicableNonFunctionPropertyKeys<Node, SceneNodePropertyKey>
 >;
 
-type SerializedResolvedNodeBase<Node extends SceneNode, Options extends ResolverOptions> = Node extends SceneNode
+/**
+ * @internal
+ */
+export type SerializedResolvedNodeBase<Node extends SceneNode, Options extends ResolverOptions> = Node extends SceneNode
   ? SerializedNode<Node, Options>
   : never;
 
@@ -297,7 +323,7 @@ export type SerializedResolvedNode<Options extends ResolverOptions> = Serialized
 export type FigmaSelectionListener = (selection: readonly SerializedResolvedNode<ResolverOptions>[]) => void;
 
 /**
- * Utility type to get the inferred type of the hook using the options object
+ * Utility type to get the inferred type of a node from the hook using the options object
  */
 export type FigmaSelectionHookNode<Options extends FigmaSelectionHookOptions = Record<string, never>> =
   SerializedResolvedNode<CombineObjects<typeof DEFAULT_HOOK_OPTIONS, Options>>;
