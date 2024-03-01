@@ -16,6 +16,9 @@ import {
 
 export { FIGMA_MIXED } from './constants';
 
+let currentPage: PageNode | undefined;
+let registeredForChanges = false;
+
 declare global {
   interface Window {
     _figma_onSelectionChange?: (selection: readonly SerializedResolvedNode<ResolverOptions>[]) => void;
@@ -41,10 +44,8 @@ const selectionChangeHandler = () => {
   uiApi._onSelectionChange(resolvedSelection);
 };
 
-const changesApplyToSelectedNodesOrDescendants = (e: DocumentChangeEvent, nodes: readonly SceneNode[]): boolean => {
-  const changesApplyToNodes = e.documentChanges.some(
-    (change) => nodes.findIndex((node) => node.id === change.id) !== -1
-  );
+const changesApplyToSelectedNodesOrDescendants = (e: NodeChangeEvent, nodes: readonly SceneNode[]): boolean => {
+  const changesApplyToNodes = e.nodeChanges.some((change) => nodes.findIndex((node) => node.id === change.id) !== -1);
 
   if (changesApplyToNodes) {
     return true;
@@ -65,13 +66,21 @@ const changesApplyToSelectedNodesOrDescendants = (e: DocumentChangeEvent, nodes:
   return changesApplyToSelectedNodesOrDescendants(e, descendants);
 };
 
-const documentChangeHandler = (e: DocumentChangeEvent) => {
+const nodeChangeHandler = (e: NodeChangeEvent) => {
   if (figma.currentPage.selection.length > 0) {
     const selection = figma.currentPage.selection;
 
     if (changesApplyToSelectedNodesOrDescendants(e, selection)) {
       selectionChangeHandler();
     }
+  }
+};
+
+const pageChangeHandler = () => {
+  if (registeredForChanges) {
+    currentPage?.off('nodechange', nodeChangeHandler);
+    currentPage = figma.currentPage;
+    currentPage.on('nodechange', nodeChangeHandler);
   }
 };
 
@@ -85,13 +94,22 @@ const apiMethods = {
       updateApiWithOptions(apiOptions);
     }
 
-    figma.on('selectionchange', selectionChangeHandler);
-    figma.on('documentchange', documentChangeHandler);
+    if (!registeredForChanges) {
+      figma.on('selectionchange', selectionChangeHandler);
+
+      currentPage = figma.currentPage;
+      currentPage.on('nodechange', nodeChangeHandler);
+
+      registeredForChanges = true;
+    }
+
     selectionChangeHandler();
   },
   _deregisterForSelectionChange() {
     figma.off('selectionchange', selectionChangeHandler);
-    figma.off('documentchange', documentChangeHandler);
+    currentPage?.off('nodechange', nodeChangeHandler);
+
+    registeredForChanges = false;
   },
   _setSelection<N extends readonly BareNode[]>(newSelection: N) {
     figma.currentPage.selection = newSelection as unknown as readonly SceneNode[];
@@ -119,4 +137,17 @@ if (typeof window !== 'undefined') {
       l(selection);
     });
   };
+}
+
+// In plugin logic, set a listener for current page change
+if (typeof figma !== 'undefined') {
+  figma.on('currentpagechange', () => {
+    pageChangeHandler();
+  });
+
+  figma.on('close', () => {
+    figma.off('currentpagechange', pageChangeHandler);
+    figma.off('selectionchange', selectionChangeHandler);
+    currentPage?.off('nodechange', nodeChangeHandler);
+  });
 }
