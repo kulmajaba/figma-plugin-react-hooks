@@ -57,6 +57,25 @@ expectType<
   >
 );
 
+// SerializedNode should return only type and id if no properties are resolved
+expectType<{
+  type: 'TEXT';
+  id: string;
+}>(
+  {} as SerializedNode<
+    TextNode,
+    {
+      nodeTypes: ['TEXT'];
+      resolveProperties: [];
+      resolveChildren: false;
+      resolveVariables: [];
+      addAncestorsVisibleProperty: false;
+      pluginDataKeys: [];
+      sharedPluginDataKeys: Record<string, never>;
+    }
+  >
+);
+
 // SerializedResolvedNode should only return the configured node types and properties
 expectType<
   {
@@ -96,6 +115,49 @@ expectType<
     nodeTypes: ['TEXT', 'FRAME'];
     resolveProperties: ['characters', 'children'];
     resolveChildren: false;
+    resolveVariables: [];
+    addAncestorsVisibleProperty: false;
+    pluginDataKeys: [];
+    sharedPluginDataKeys: Record<string, never>;
+  }>
+);
+
+// SerializedResolvedNode should resolve children type
+type TestTypeWithChildren = {
+  type: 'FRAME';
+  id: string;
+} & {
+  children: readonly TestTypeWithChildren[];
+};
+expectType<TestTypeWithChildren>(
+  {} as SerializedResolvedNode<{
+    nodeTypes: ['FRAME'];
+    resolveProperties: ['children'];
+    resolveChildren: true;
+    resolveVariables: [];
+    addAncestorsVisibleProperty: false;
+    pluginDataKeys: [];
+    sharedPluginDataKeys: Record<string, never>;
+  }>
+);
+
+// SerializedResolvedNode should resolve children type
+type TestTypeWithChildren2 =
+  | {
+      type: 'TEXT';
+      id: string;
+    }
+  | ({
+      type: 'FRAME';
+      id: string;
+    } & {
+      children: readonly TestTypeWithChildren2[];
+    });
+expectType<TestTypeWithChildren2>(
+  {} as SerializedResolvedNode<{
+    nodeTypes: ['TEXT', 'FRAME'];
+    resolveProperties: ['children'];
+    resolveChildren: true;
     resolveVariables: [];
     addAncestorsVisibleProperty: false;
     pluginDataKeys: [];
