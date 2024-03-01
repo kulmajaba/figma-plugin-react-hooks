@@ -142,7 +142,7 @@ ___
 Use `satisfies` (for TS >= 4.9) with this type to allow for type checking the options object
 while the type of the object remains exact.
 
-This allows us to infer the type of the returned nodes correctly.
+This allows the hook to infer the type of the returned nodes correctly.
 
 Example:
 ```typescript
@@ -171,7 +171,7 @@ ___
 
 Ƭ **FigmaSelectionHookNode**\<`Options`\>: `SerializedResolvedNode`\<`CombineObjects`\<typeof `DEFAULT_HOOK_OPTIONS`, `Options`\>\>
 
-Utility type to get the inferred type of the hook using the options object
+Utility type to get the inferred type of a node from the hook using the options object
 
 #### Type parameters
 
