@@ -81,13 +81,13 @@ const resolveVariableProperties = (variable: Variable): Variable => {
   return objectWithProperties;
 };
 
-const resolveBoundVariables = <
+const resolveBoundVariables = async <
   BoundVariables extends NonNullable<SceneNode['boundVariables']>,
   const Options extends ResolverOptions
 >(
   boundVariables: BoundVariables,
   options: Options
-): BoundVariableInstances => {
+): Promise<BoundVariableInstances> => {
   const { resolveVariables } = options;
   const result: Mutable<BoundVariableInstances> = {};
 
@@ -104,7 +104,7 @@ const resolveBoundVariables = <
         const variableInstances: Variable[] = [];
 
         for (const variableAlias of aliases) {
-          const variable = figma.variables.getVariableById(variableAlias.id);
+          const variable = await figma.variables.getVariableByIdAsync(variableAlias.id);
           if (variable) {
             variableInstances.push(resolveVariableProperties(variable));
           }
@@ -117,14 +117,14 @@ const resolveBoundVariables = <
         const instanceObject: Record<string, Variable> = {};
 
         for (const componentPropertyKey of Object.keys(aliasObject)) {
-          const variable = figma.variables.getVariableById(aliasObject[componentPropertyKey].id);
+          const variable = await figma.variables.getVariableByIdAsync(aliasObject[componentPropertyKey].id);
           variable && (instanceObject[componentPropertyKey] = resolveVariableProperties(variable));
         }
 
         Object.keys(instanceObject).length > 0 && (result[boundVariableKey as 'componentProperties'] = instanceObject);
       } else {
         const alias = boundVariable as VariableAlias;
-        const variableInstance = figma.variables.getVariableById(alias.id);
+        const variableInstance = await figma.variables.getVariableByIdAsync(alias.id);
 
         variableInstance &&
           (result[boundVariableKey as keyof BoundVariablesBareAliases] = resolveVariableProperties(variableInstance));
@@ -164,11 +164,11 @@ const resolveSharedPluginData = <K extends OptSharedPluginDataKeys>(
   return sharedPluginData as SharedPluginData<K>;
 };
 
-const resolveAndSerializeNodeProperties = <Node extends SceneNode, const Options extends ResolverOptions>(
+const resolveAndSerializeNodeProperties = async <Node extends SceneNode, const Options extends ResolverOptions>(
   node: Node,
   options: Options,
   ancestorsVisible: boolean
-): SerializedResolvedNode<Options> => {
+): Promise<SerializedResolvedNode<Options>> => {
   const { resolveProperties, resolveVariables, addAncestorsVisibleProperty, pluginDataKeys, sharedPluginDataKeys } =
     options;
 
@@ -187,7 +187,7 @@ const resolveAndSerializeNodeProperties = <Node extends SceneNode, const Options
     node.boundVariables !== undefined &&
     (resolveVariables === 'all' || (isArray(resolveVariables) && resolveVariables.length > 0))
   ) {
-    resolvedNode.boundVariableInstances = resolveBoundVariables(node.boundVariables, options);
+    resolvedNode.boundVariableInstances = await resolveBoundVariables(node.boundVariables, options);
   }
 
   if (addAncestorsVisibleProperty) {
@@ -205,32 +205,35 @@ const resolveAndSerializeNodeProperties = <Node extends SceneNode, const Options
   return resolvedNode as SerializedResolvedNode<Options>;
 };
 
-export const resolveAndFilterNodes = <const Options extends ResolverOptions>(
+export const resolveAndFilterNodes = async <const Options extends ResolverOptions>(
   nodes: readonly SceneNode[],
   options: Options,
   ancestorsVisible: boolean = true
-): SerializedResolvedNode<Options>[] => {
+): Promise<SerializedResolvedNode<Options>[]> => {
   const result: SerializedResolvedNode<Options>[] = [];
   const { nodeTypes, resolveChildren } = options;
 
   if (nodeTypes !== undefined) {
     for (const node of nodes) {
       if (nodeTypes.includes(node.type)) {
-        result.push(resolveAndSerializeNodeProperties(node, options, ancestorsVisible && node.visible));
+        const resolvedNode = await resolveAndSerializeNodeProperties(node, options, ancestorsVisible && node.visible);
+        result.push(resolvedNode);
       } else if (nodeCanHaveChildren(node) && resolveChildren) {
-        result.push(...resolveAndFilterNodes(node.children, options, ancestorsVisible && node.visible));
+        const resolvedChildren = await resolveAndFilterNodes(node.children, options, ancestorsVisible && node.visible);
+        result.push(...resolvedChildren);
       }
     }
   } else {
     for (const node of nodes) {
       if (nodeCanHaveChildren(node) && resolveChildren) {
         const newNode = {
-          ...resolveAndSerializeNodeProperties(node, options, ancestorsVisible && node.visible),
-          children: resolveAndFilterNodes(node.children, options, ancestorsVisible && node.visible)
+          ...(await resolveAndSerializeNodeProperties(node, options, ancestorsVisible && node.visible)),
+          children: await resolveAndFilterNodes(node.children, options, ancestorsVisible && node.visible)
         };
         result.push(newNode);
       } else {
-        result.push(resolveAndSerializeNodeProperties(node, options, ancestorsVisible && node.visible));
+        const resolvedNode = await resolveAndSerializeNodeProperties(node, options, ancestorsVisible && node.visible);
+        result.push(resolvedNode);
       }
     }
   }

@@ -39,8 +39,8 @@ export const updateUiApiWithOptions = (rpcOptions: RPCOptions) => {
   uiApi = createUIAPI(uiApiMethods, rpcOptions);
 };
 
-const selectionChangeHandler = () => {
-  const resolvedSelection = resolveAndFilterNodes(figma.currentPage.selection, options);
+const selectionChangeHandler = async () => {
+  const resolvedSelection = await resolveAndFilterNodes(figma.currentPage.selection, options);
   uiApi._onSelectionChange(resolvedSelection);
 };
 
