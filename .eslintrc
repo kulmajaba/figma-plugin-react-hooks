@@ -57,6 +57,7 @@
     ],
     "import/no-unresolved": [2, { "ignore": ["tsd"] }],
     "prettier/prettier": 1,
+    "@figma/figma-plugins/await-requires-async": 0,
     "react/jsx-fragments": [1, "syntax"],
     "react/destructuring-assignment": [1, "always"],
     "react/function-component-definition": [1, { "namedComponents": "arrow-function" }],

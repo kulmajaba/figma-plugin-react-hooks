@@ -1,8 +1,8 @@
-<!--- Do not edit README.md, it is overwritten by the build script. Edit docs/index.md instead. -->
-
 Use Figma selection in your plugin UI via React hooks.
 
 Supports TypeScript.
+
+<!--- Do not edit README.md, it is overwritten by the build script. Edit docs/index.md instead. -->
 
 ## Usage
 
@@ -40,7 +40,8 @@ export default SomeComponent;
 
 The hook can be configured by passing an options object to the hook call.
 
-**Important: only one set of options, from the first time the hook is called in your app, will take presence.**
+**Important: only one set of options will take presence in the hook.**
+Whichever hook is the most recent to be mounted will override previous options.
 
 It is best to create the hook options as a constant that is imported into each of the files where the hook is used.
 
@@ -51,6 +52,7 @@ import { FigmaSelectionHookOptions } from 'figma-plugin-react-hooks/hook';
 
 // Using satisfies gives you type hints and autocomplete while retaining the exact inferred return type from the hook
 export const selectionHookOptions = {
+  resolveProperties: ['name', 'boundVariables', 'absoluteBoundingBox', 'visible']
   resolveChildrenNodes: true
 } satisfies FigmaSelectionHookOptions;
 ```
@@ -71,7 +73,13 @@ const SomeComponent: FC = () => {
 };
 ```
 
-### Types with custom options
+### Performance
+
+The more nodes the users selects and the more properties you want to resolve from the nodes, the worse the performance will be.
+If you're resolving all node properties and children, the execution time will easily get to several seconds and beyond.
+Do your best to only resolve the properties you need to keep the performance at an acceptable level.
+
+### Type utilities
 
 The library also exports a few utility types for you to use in your React components:
 
@@ -80,6 +88,7 @@ import { FC } from 'react';
 
 import { FigmaSelectionHookNode } from 'figma-plugin-react-hooks/hook';
 
+// Your custom options
 import { figmaSelectionHookOptions } from './constants';
 
 // FigmaSelectionHookNode is the type of a single node returned from the hook, inferred from the options you pass to it
@@ -91,3 +100,11 @@ const NodeListItem: FC<NodeListItemProps> = ({ node }) => {
   ...
 };
 ```
+
+## Caveat
+
+The hook is based on Figma's `selectionchange` and `nodechange` events, which currently do not support all changes in the selection.
+Examples of missing events:
+
+- Binding a text variable to a node
+- Using "reset all changes" on a Component instance
