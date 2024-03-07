@@ -1,4 +1,4 @@
-import { DEFAULT_HOOK_OPTIONS, FIGMA_MIXED } from './constants';
+import { DEFAULT_HOOK_OPTIONS, FIGMA_MIXED, ListenerEventType } from './constants';
 
 import type { RPCOptions } from 'figma-plugin-api';
 
@@ -317,10 +317,13 @@ export type SerializedResolvedNode<Options extends ResolverOptions> = Serialized
   PluginDataMixin<Options> &
   SharedPluginDataMixin<Options>;
 
+type SelectionListenerStartParams = [ListenerEventType.Start, undefined];
+type SelectionListenerFinishParams = [ListenerEventType.Finish, readonly SerializedResolvedNode<ResolverOptions>[]];
+
 /**
  * @internal
  */
-export type FigmaSelectionListener = (selection: readonly SerializedResolvedNode<ResolverOptions>[]) => void;
+export type FigmaSelectionListener = (...params: SelectionListenerStartParams | SelectionListenerFinishParams) => void;
 
 /**
  * Utility type to get the inferred type of a node from the hook using the options object
@@ -330,8 +333,15 @@ export type FigmaSelectionHookNode<Options extends FigmaSelectionHookOptions = R
 
 /**
  * Utility type to get the inferred return type of the hook using the options object
+ *
+ * [0] - Selected resolved nodes
+ *
+ * [1] - A function to set the selection
+ *
+ * [2] - Loading state
  */
 export type FigmaSelectionHookType<Options extends FigmaSelectionHookOptions = Record<string, never>> = [
   readonly FigmaSelectionHookNode<Options>[],
-  (selection: readonly BareNode[]) => void
+  (selection: readonly BareNode[]) => void,
+  boolean
 ];
