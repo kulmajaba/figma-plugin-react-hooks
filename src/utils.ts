@@ -1,7 +1,7 @@
 import { FIGMA_MIXED } from './constants';
 import { isArray, nodeCanHaveChildren, strictObjectKeys } from './typeUtils';
 
-import { Mutable, NonFunctionPropertyKeys } from './typePrimitives';
+import { AsyncFunctionPropertyKeys, Mutable, NonFunctionPropertyKeys } from './typePrimitives';
 import {
   BoundVariableInstances,
   BoundVariablesAliasArrays,
@@ -14,20 +14,35 @@ import {
   SharedPluginData
 } from './types';
 
+const dynamicPageBannedPropertyKeys: { key: string; replacement: AsyncFunctionPropertyKeys<SceneNode> }[] = [
+  { key: 'instances', replacement: 'getInstancesAsync' },
+  { key: 'mainComponent', replacement: 'getMainComponentAsync' },
+  { key: 'masterComponent', replacement: 'getMainComponentAsync' }
+] as const;
+
+const defaultNodePropertyGetterFilters = [
+  // Can only get component property definitions of a component set or non-variant component
+  { key: 'componentPropertyDefinitions', condition: (node: SceneNode) => node.parent?.type === 'COMPONENT_SET' },
+
+  // reading horizontalPadding and verticalPadding is no longer supported as left and right padding may differ
+  'horizontalPadding',
+  'verticalPadding'
+] as const;
+
 const defaultNodePropertyGetterFilter = <Node extends SceneNode>(key: keyof Node, node: Node): boolean => {
-  return (
-    // Can only get component property definitions of a component set or non-variant component
-    !(key === 'componentPropertyDefinitions' && node.parent?.type === 'COMPONENT_SET') &&
-    // reading horizontalPadding and verticalPadding is no longer supported as left and right padding may differ
-    key !== 'horizontalPadding' &&
-    key !== 'verticalPadding'
-  );
+  return !defaultNodePropertyGetterFilters.some((filter) => {
+    if (typeof filter === 'string') {
+      return key === filter;
+    } else {
+      return key === filter.key && filter.condition(node);
+    }
+  });
 };
 
-const resolveNodeProperties = <Node extends SceneNode, const Keys extends readonly SceneNodePropertyKey[]>(
+const resolveNodeProperties = async <Node extends SceneNode, const Keys extends readonly SceneNodePropertyKey[]>(
   node: Node,
   propertyKeys?: Keys
-): ResolvedNode<Node, Keys> => {
+): Promise<ResolvedNode<Node, Keys>> => {
   // Narrow the type from the default which has a mapped type
   const descriptors = Object.getOwnPropertyDescriptors<Node>(Object.getPrototypeOf(node)) as {
     [K in keyof Node]: TypedPropertyDescriptor<Node[K]>;
@@ -50,6 +65,14 @@ const resolveNodeProperties = <Node extends SceneNode, const Keys extends readon
   } as Node;
 
   for (const getter of getters) {
+    const bannedKey = dynamicPageBannedPropertyKeys.find((banned) => banned.key === getter);
+    if (bannedKey) {
+      const replacementMethod = bannedKey.replacement as AsyncFunctionPropertyKeys<Node>;
+      // @ts-expect-error expression is not callable
+      objectWithProperties[getter] = await node[replacementMethod]();
+      continue;
+    }
+
     objectWithProperties[getter] = node[getter];
   }
 
@@ -81,13 +104,13 @@ const resolveVariableProperties = (variable: Variable): Variable => {
   return objectWithProperties;
 };
 
-const resolveBoundVariables = <
+const resolveBoundVariables = async <
   BoundVariables extends NonNullable<SceneNode['boundVariables']>,
   const Options extends ResolverOptions
 >(
   boundVariables: BoundVariables,
   options: Options
-): BoundVariableInstances => {
+): Promise<BoundVariableInstances> => {
   const { resolveVariables } = options;
   const result: Mutable<BoundVariableInstances> = {};
 
@@ -104,7 +127,7 @@ const resolveBoundVariables = <
         const variableInstances: Variable[] = [];
 
         for (const variableAlias of aliases) {
-          const variable = figma.variables.getVariableById(variableAlias.id);
+          const variable = await figma.variables.getVariableByIdAsync(variableAlias.id);
           if (variable) {
             variableInstances.push(resolveVariableProperties(variable));
           }
@@ -117,14 +140,14 @@ const resolveBoundVariables = <
         const instanceObject: Record<string, Variable> = {};
 
         for (const componentPropertyKey of Object.keys(aliasObject)) {
-          const variable = figma.variables.getVariableById(aliasObject[componentPropertyKey].id);
+          const variable = await figma.variables.getVariableByIdAsync(aliasObject[componentPropertyKey].id);
           variable && (instanceObject[componentPropertyKey] = resolveVariableProperties(variable));
         }
 
         Object.keys(instanceObject).length > 0 && (result[boundVariableKey as 'componentProperties'] = instanceObject);
       } else {
         const alias = boundVariable as VariableAlias;
-        const variableInstance = figma.variables.getVariableById(alias.id);
+        const variableInstance = await figma.variables.getVariableByIdAsync(alias.id);
 
         variableInstance &&
           (result[boundVariableKey as keyof BoundVariablesBareAliases] = resolveVariableProperties(variableInstance));
@@ -164,18 +187,18 @@ const resolveSharedPluginData = <K extends OptSharedPluginDataKeys>(
   return sharedPluginData as SharedPluginData<K>;
 };
 
-const resolveAndSerializeNodeProperties = <Node extends SceneNode, const Options extends ResolverOptions>(
+const resolveAndSerializeNodeProperties = async <Node extends SceneNode, const Options extends ResolverOptions>(
   node: Node,
   options: Options,
   ancestorsVisible: boolean
-): SerializedResolvedNode<Options> => {
+): Promise<SerializedResolvedNode<Options>> => {
   const { resolveProperties, resolveVariables, addAncestorsVisibleProperty, pluginDataKeys, sharedPluginDataKeys } =
     options;
 
-  const resolvedNode = resolveNodeProperties(
+  const resolvedNode = (await resolveNodeProperties(
     node,
     resolveProperties === 'all' ? undefined : resolveProperties
-  ) as Record<string, unknown>;
+  )) as Record<string, unknown>;
 
   for (const key of strictObjectKeys(resolvedNode)) {
     if (resolvedNode[key] === figma.mixed) {
@@ -187,7 +210,7 @@ const resolveAndSerializeNodeProperties = <Node extends SceneNode, const Options
     node.boundVariables !== undefined &&
     (resolveVariables === 'all' || (isArray(resolveVariables) && resolveVariables.length > 0))
   ) {
-    resolvedNode.boundVariableInstances = resolveBoundVariables(node.boundVariables, options);
+    resolvedNode.boundVariableInstances = await resolveBoundVariables(node.boundVariables, options);
   }
 
   if (addAncestorsVisibleProperty) {
@@ -205,32 +228,44 @@ const resolveAndSerializeNodeProperties = <Node extends SceneNode, const Options
   return resolvedNode as SerializedResolvedNode<Options>;
 };
 
+const resolveNodeAndChildren = async <const Options extends ResolverOptions>(
+  node: SceneNode & ChildrenMixin,
+  options: Options,
+  ancestorsVisible: boolean = true
+) => {
+  const newNode = {
+    ...(await resolveAndSerializeNodeProperties(node, options, ancestorsVisible && node.visible)),
+    children: await Promise.all(resolveAndFilterNodes(node.children, options, ancestorsVisible && node.visible))
+  };
+
+  return newNode;
+};
+
 export const resolveAndFilterNodes = <const Options extends ResolverOptions>(
   nodes: readonly SceneNode[],
   options: Options,
   ancestorsVisible: boolean = true
-): SerializedResolvedNode<Options>[] => {
-  const result: SerializedResolvedNode<Options>[] = [];
+): Promise<SerializedResolvedNode<Options>>[] => {
+  const result: Promise<SerializedResolvedNode<Options>>[] = [];
   const { nodeTypes, resolveChildren } = options;
 
   if (nodeTypes !== undefined) {
     for (const node of nodes) {
       if (nodeTypes.includes(node.type)) {
-        result.push(resolveAndSerializeNodeProperties(node, options, ancestorsVisible && node.visible));
+        const resolvedNode = resolveAndSerializeNodeProperties(node, options, ancestorsVisible && node.visible);
+        result.push(resolvedNode);
       } else if (nodeCanHaveChildren(node) && resolveChildren) {
-        result.push(...resolveAndFilterNodes(node.children, options, ancestorsVisible && node.visible));
+        const resolvedChildren = resolveAndFilterNodes(node.children, options, ancestorsVisible && node.visible);
+        result.push(...resolvedChildren);
       }
     }
   } else {
     for (const node of nodes) {
       if (nodeCanHaveChildren(node) && resolveChildren) {
-        const newNode = {
-          ...resolveAndSerializeNodeProperties(node, options, ancestorsVisible && node.visible),
-          children: resolveAndFilterNodes(node.children, options, ancestorsVisible && node.visible)
-        };
-        result.push(newNode);
+        result.push(resolveNodeAndChildren(node, options, ancestorsVisible));
       } else {
-        result.push(resolveAndSerializeNodeProperties(node, options, ancestorsVisible && node.visible));
+        const resolvedNode = resolveAndSerializeNodeProperties(node, options, ancestorsVisible && node.visible);
+        result.push(resolvedNode);
       }
     }
   }

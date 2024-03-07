@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-types */
 
 export type Mutable<T> = { -readonly [P in keyof T]: T[P] };
@@ -8,11 +9,26 @@ export type Mutable<T> = { -readonly [P in keyof T]: T[P] };
  */
 export type ArrayElementUnion<T extends readonly unknown[]> = T[number];
 
+type MaybeValue<T, K> = K extends keyof T ? T[K] : never;
+
+type ValueInUnion<T, K> = T extends infer P ? MaybeValue<P, K> : never;
+
 /**
- * @internal
  * Get all keys of a union type, instead of just the common keys that `keyof` returns
  */
 type KeysOfUnion<T> = T extends infer P ? keyof P : never;
+
+type SmooshedObjectUnion<T> = {
+  [K in KeysOfUnion<T>]: ValueInUnion<T, K>;
+};
+
+export type PickPropertyKeys<T extends object, U> = {
+  [K in KeysOfUnion<T>]: SmooshedObjectUnion<T>[K] extends U ? K : never;
+}[KeysOfUnion<T>];
+
+export type OmitPropertyKeys<T extends object, U> = {
+  [K in KeysOfUnion<T>]: SmooshedObjectUnion<T>[K] extends U ? never : K;
+}[KeysOfUnion<T>];
 
 /**
  * @internal
@@ -20,9 +36,12 @@ type KeysOfUnion<T> = T extends infer P ? keyof P : never;
  *
  * When given a union type, it will return all possible property names from the union types.
  */
-export type NonFunctionPropertyKeys<T extends object> = {
-  [K in KeysOfUnion<T>]: T[K] extends Function ? never : K;
-}[KeysOfUnion<T>];
+export type NonFunctionPropertyKeys<T extends object> = OmitPropertyKeys<T, Function>;
+
+/**
+ * @internal
+ */
+export type AsyncFunctionPropertyKeys<T extends object> = PickPropertyKeys<T, (...args: any[]) => Promise<any>>;
 
 /**
  * @internal

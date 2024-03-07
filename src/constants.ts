@@ -17,3 +17,8 @@ export const DEFAULT_HOOK_OPTIONS = {
   pluginDataKeys: [],
   sharedPluginDataKeys: {}
 } as const satisfies ResolverOptions;
+
+export enum ListenerEventType {
+  Start = 'START',
+  Finish = 'FINISH'
+}

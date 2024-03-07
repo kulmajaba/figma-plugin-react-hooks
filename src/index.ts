@@ -1,5 +1,6 @@
 import { createUIAPI, createPluginAPI } from 'figma-plugin-api';
 
+import { ListenerEventType } from './constants';
 import { nodeCanHaveChildren } from './typeUtils';
 import { resolveAndFilterNodes } from './utils';
 
@@ -21,14 +22,20 @@ let registeredForChanges = false;
 
 declare global {
   interface Window {
-    _figma_onSelectionChange?: (selection: readonly SerializedResolvedNode<ResolverOptions>[]) => void;
+    _figma_onSelectionChangeFinish?: (selection: readonly SerializedResolvedNode<ResolverOptions>[]) => void;
+    _figma_onSelectionChangeStart?: () => void;
   }
 }
 
 const uiApiMethods = {
-  _onSelectionChange(selection: readonly SerializedResolvedNode<ResolverOptions>[]) {
-    if (typeof window._figma_onSelectionChange !== 'undefined') {
-      window._figma_onSelectionChange(selection);
+  _onSelectionChangeStart() {
+    if (typeof window._figma_onSelectionChangeStart !== 'undefined') {
+      window._figma_onSelectionChangeStart();
+    }
+  },
+  _onSelectionChangeFinish(selection: readonly SerializedResolvedNode<ResolverOptions>[]) {
+    if (typeof window._figma_onSelectionChangeFinish !== 'undefined') {
+      window._figma_onSelectionChangeFinish(selection);
     }
   }
 };
@@ -39,9 +46,15 @@ export const updateUiApiWithOptions = (rpcOptions: RPCOptions) => {
   uiApi = createUIAPI(uiApiMethods, rpcOptions);
 };
 
-const selectionChangeHandler = () => {
-  const resolvedSelection = resolveAndFilterNodes(figma.currentPage.selection, options);
-  uiApi._onSelectionChange(resolvedSelection);
+const selectionChangeHandler = async () => {
+  uiApi._onSelectionChangeStart();
+  try {
+    const resolvedSelection = await Promise.all(resolveAndFilterNodes(figma.currentPage.selection, options));
+    uiApi._onSelectionChangeFinish(resolvedSelection);
+  } catch (e) {
+    console.error(e);
+    uiApi._onSelectionChangeFinish([]);
+  }
 };
 
 const changesApplyToSelectedNodesOrDescendants = (e: NodeChangeEvent, nodes: readonly SceneNode[]): boolean => {
@@ -132,9 +145,14 @@ export const setlisteners = (newListeners: FigmaSelectionListener[]) => {
 
 // In plugin UI, add a global function to receive selection change events
 if (typeof window !== 'undefined') {
-  window._figma_onSelectionChange = (selection) => {
+  window._figma_onSelectionChangeFinish = () => {
     listeners.forEach((l) => {
-      l(selection);
+      l(ListenerEventType.Start, undefined);
+    });
+  };
+  window._figma_onSelectionChangeFinish = (selection) => {
+    listeners.forEach((l) => {
+      l(ListenerEventType.Finish, selection);
     });
   };
 }

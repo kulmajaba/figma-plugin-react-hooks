@@ -21,6 +21,13 @@ import {
 // NonFunctionPropertyKeys should return all property keys of an object that are not functions
 expectType<'id' | 'type'>({} as NonFunctionPropertyKeys<{ id: 'asd'; type: 'asd'; getType: () => 'asd' }>);
 
+// NonFunctionPropertyKeys should work with unions
+expectType<'id' | 'type'>(
+  {} as NonFunctionPropertyKeys<
+    { id: 'id'; type: 'type'; getType: () => 'asd' } | { id: 'id2'; type: 'type2'; getOtherProp: () => 'asd' }
+  >
+);
+
 // ApplicableNonFunctionPropertyKeys should return all property keys of an object that are not functions and exist in object
 expectType<'id' | 'type'>(
   {} as ApplicableNonFunctionPropertyKeys<
