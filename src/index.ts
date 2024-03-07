@@ -47,10 +47,14 @@ export const updateUiApiWithOptions = (rpcOptions: RPCOptions) => {
 };
 
 const selectionChangeHandler = async () => {
-  console.log('selectionChangeHandler at time', Date.now().toString().slice(-5));
   uiApi._onSelectionChangeStart();
-  const resolvedSelection = await Promise.all(resolveAndFilterNodes(figma.currentPage.selection, options));
-  uiApi._onSelectionChangeFinish(resolvedSelection);
+  try {
+    const resolvedSelection = await Promise.all(resolveAndFilterNodes(figma.currentPage.selection, options));
+    uiApi._onSelectionChangeFinish(resolvedSelection);
+  } catch (e) {
+    console.error(e);
+    uiApi._onSelectionChangeFinish([]);
+  }
 };
 
 const changesApplyToSelectedNodesOrDescendants = (e: NodeChangeEvent, nodes: readonly SceneNode[]): boolean => {

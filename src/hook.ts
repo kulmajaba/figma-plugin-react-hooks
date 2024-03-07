@@ -41,7 +41,6 @@ const useFigmaSelection = <const Options extends FigmaSelectionHookOptions>(
     } else if (type === ListenerEventType.Finish) {
       setLoading(false);
       setSelection(newSelection as unknown as typeof selection);
-      console.log('selectionListener finish at time', Date.now().toString().slice(-5));
     }
   };
 
