@@ -1,16 +1,6 @@
 {
-  "include": ["src/**/*", "tests/**/*"],
-  "compilerOptions": {
-    "target": "ESNext",
-    "lib": ["ESNext", "DOM"],
-    "strict": true,
-    "jsx": "react-jsx",
-    "types": ["@figma/plugin-typings"],
-    "outDir": "lib",
-    "moduleResolution": "node",
-    "skipLibCheck": true,
-    "noErrorTruncation": false
-  },
+  "extends": "./tsconfig-base",
+  "include": ["src/**/*"],
   "typedocOptions": {
     "entryPoints": ["src/types.ts"],
     "out": "docs-temp",
