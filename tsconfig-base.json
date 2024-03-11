@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["ESNext", "DOM"],
+    "strict": true,
+    "jsx": "react-jsx",
+    "types": ["@figma/plugin-typings"],
+    "outDir": "lib",
+    "moduleResolution": "node",
+    "skipLibCheck": true,
+    "noErrorTruncation": false
+  }
+}
