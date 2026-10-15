@@ -40,12 +40,19 @@
     "build:hook:esm": "npm run build:hook -- --format=esm --outfile=lib/hook.mjs",
     "build:types": "tsc --emitDeclarationOnly --declaration --preserveWatchOutput --project tsconfig.build.json",
     "build:docs": "typedoc && cp docs/index.md docs-temp && node ./build-docs.mjs",
-    "test:types": "tsd --typings src/types.ts --files tests/types.test.ts",
+    "test:types": "tstyche",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
   "author": "Mika Kuitunen",
   "license": "MIT",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=22",
+      "onFail": "warn"
+    }
+  },
   "peerDependencies": {
     "figma-plugin-api": ">=1.1.0",
     "react": ">=17.0.0"
@@ -64,7 +71,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.9.10",
-    "tsd": "^0.31.0",
+    "tstyche": "^7.2.5",
     "typedoc": "^0.28.20",
     "typedoc-plugin-markdown": "^4.14.0",
     "typescript": "^6.0.3",

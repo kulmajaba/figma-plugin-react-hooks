@@ -63,7 +63,7 @@ export default defineConfig([
           pathGroupsExcludedImportTypes: ['react']
         }
       ],
-      'import/no-unresolved': ['error', { ignore: ['tsd'] }],
+      'import/no-unresolved': 'error',
       '@figma/figma-plugins/await-requires-async': 'off',
       'react/jsx-fragments': ['warn', 'syntax'],
       'react/destructuring-assignment': ['warn', 'always'],
