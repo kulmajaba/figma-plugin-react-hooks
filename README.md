@@ -115,46 +115,46 @@ Examples of missing events:
 
 ### RPCOptions
 
-Ƭ **RPCOptions**: `Object`
+> **RPCOptions** = `object`
 
-#### Type declaration
+#### Properties
 
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `timeoutMs?` | `number` | Timeout in milliseconds Default: `3000` |
-| `pluginId?` | `string` | If your plugin UI is hosted (non-null origin), pluginId must be defined to allow messages to be sent |
-| `logicTargetOrigin?` | `string` | Specifies what the origin of the plugin UI must be for a message to be dispatched from plugin logic to UI If defined, add `http://localhost:<port>` to this field in your local environment to allow messaging while running on a dev server Default: `'*'` |
-| `uiTargetOrigin?` | `string` | Specifies what the origin of the plugin logic must be for a message to be dispatched from UI to plugin logic Usually `'https://www.figma.com'` Default: `'*'` |
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="property-timeoutms"></a> `timeoutMs?` | `number` | Timeout in milliseconds Default: `3000` |
+| <a id="property-pluginid"></a> `pluginId?` | `string` | If your plugin UI is hosted (non-null origin), pluginId must be defined to allow messages to be sent |
+| <a id="property-logictargetorigin"></a> `logicTargetOrigin?` | `string` | Specifies what the origin of the plugin UI must be for a message to be dispatched from plugin logic to UI If defined, add `http://localhost:<port>` to this field in your local environment to allow messaging while running on a dev server Default: `'*'` |
+| <a id="property-uitargetorigin"></a> `uiTargetOrigin?` | `string` | Specifies what the origin of the plugin logic must be for a message to be dispatched from UI to plugin logic Usually `'https://www.figma.com'` Default: `'*'` |
 
-___
+***
 
 ### OptSceneNodeProperties
 
-Ƭ **OptSceneNodeProperties**: readonly `SceneNodePropertyKey`[] \| ``"all"``
+> **OptSceneNodeProperties** = readonly `SceneNodePropertyKey`[] \| `"all"`
 
-___
+***
 
 ### BoundVariableKey
 
-Ƭ **BoundVariableKey**: keyof `NonNullable`\<`SceneNode`[``"boundVariables"``]\>
+> **BoundVariableKey** = keyof `NonNullable`\<`SceneNode`\[`"boundVariables"`\]\>
 
-___
+***
 
 ### OptSceneNodeVariables
 
-Ƭ **OptSceneNodeVariables**: readonly [`BoundVariableKey`](types.md#boundvariablekey)[] \| ``"all"``
+> **OptSceneNodeVariables** = readonly [`BoundVariableKey`](#boundvariablekey)[] \| `"all"`
 
-___
+***
 
 ### OptSharedPluginDataKeys
 
-Ƭ **OptSharedPluginDataKeys**: `Record`\<`string`, `string`[]\>
+> **OptSharedPluginDataKeys** = `Record`\<`string`, `string`[]\>
 
-___
+***
 
 ### FigmaSelectionHookOptions
 
-Ƭ **FigmaSelectionHookOptions**: `Object`
+> **FigmaSelectionHookOptions** = `object`
 
 Use `satisfies` (for TS >= 4.9) with this type to allow for type checking the options object
 while the type of the object remains exact.
@@ -169,38 +169,38 @@ const options = {
 } satisfies FigmaSelectionHookOptions;
 ```
 
-#### Type declaration
+#### Properties
 
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `nodeTypes?` | readonly `SceneNodeType`[] | Only return specific types of nodes. If left undefined, all nodes in the selection will be returned. Default: `undefined` |
-| `resolveProperties?` | [`OptSceneNodeProperties`](types.md#optscenenodeproperties) | Figma node properties are lazy-loaded, so to use any property you have to resolve it first. Resolving all node properties causes a performance hit, so you can specify which properties you want to resolve. If set to `[]`, no properties will be resolved and you will only get the ids of the nodes. Node methods (such as `getPluginData`) will never be resolved. Default: `'all'` |
-| `resolveVariables?` | [`OptSceneNodeVariables`](types.md#optscenenodevariables) | Resolve bound variables of the selection. Similarly to `resolveProperties`, you can specify which variables you want to resolve to optimize performance. If set to `[]`, no properties will be resolved and you will only get the ids of the nodes. Default: `[]` |
-| `resolveChildren?` | `boolean` | Resolve children nodes of the selection. If `nodeTypes` is set, all nodes of the specified types will be returned as a flat array. Default: `false` |
-| `addAncestorsVisibleProperty?` | `boolean` | Add `ancestorsVisible` property to all nodes. This property is true if all ancestors of the node are visible. Default: `false` |
-| `pluginDataKeys?` | `string`[] | Get the corresponding plugin data for all nodes. Default: `[]` |
-| `sharedPluginDataKeys?` | [`OptSharedPluginDataKeys`](types.md#optsharedplugindatakeys) | Get the corresponding shared plugin data for all nodes. The object keys are treated as namespaces and the array values as keys. Default: `{}` |
-| `apiOptions?` | [`RPCOptions`](types.md#rpcoptions) | Options for figma-plugin-api Default: see the RPCOptions type |
+| Property | Type | Description |
+| ------ | ------ | ------ |
+| <a id="property-nodetypes"></a> `nodeTypes?` | readonly `SceneNodeType`[] | Only return specific types of nodes. If left undefined, all nodes in the selection will be returned. Default: `undefined` |
+| <a id="property-resolveproperties"></a> `resolveProperties?` | [`OptSceneNodeProperties`](#optscenenodeproperties) | Figma node properties are lazy-loaded, so to use any property you have to resolve it first. Resolving all node properties causes a performance hit, so you can specify which properties you want to resolve. If set to `[]`, no properties will be resolved and you will only get the ids of the nodes. Node methods (such as `getPluginData`) will never be resolved. Default: `'all'` |
+| <a id="property-resolvevariables"></a> `resolveVariables?` | [`OptSceneNodeVariables`](#optscenenodevariables) | Resolve bound variables of the selection. Similarly to `resolveProperties`, you can specify which variables you want to resolve to optimize performance. If set to `[]`, no properties will be resolved and you will only get the ids of the nodes. Default: `[]` |
+| <a id="property-resolvechildren"></a> `resolveChildren?` | `boolean` | Resolve children nodes of the selection. If `nodeTypes` is set, all nodes of the specified types will be returned as a flat array. Default: `false` |
+| <a id="property-addancestorsvisibleproperty"></a> `addAncestorsVisibleProperty?` | `boolean` | Add `ancestorsVisible` property to all nodes. This property is true if all ancestors of the node are visible. Default: `false` |
+| <a id="property-plugindatakeys"></a> `pluginDataKeys?` | `string`[] | Get the corresponding plugin data for all nodes. Default: `[]` |
+| <a id="property-sharedplugindatakeys"></a> `sharedPluginDataKeys?` | [`OptSharedPluginDataKeys`](#optsharedplugindatakeys) | Get the corresponding shared plugin data for all nodes. The object keys are treated as namespaces and the array values as keys. Default: `{}` |
+| <a id="property-apioptions"></a> `apiOptions?` | [`RPCOptions`](#rpcoptions) | Options for figma-plugin-api Default: see the RPCOptions type |
 
-___
+***
 
 ### FigmaSelectionHookNode
 
-Ƭ **FigmaSelectionHookNode**\<`Options`\>: `SerializedResolvedNode`\<`CombineObjects`\<typeof `DEFAULT_HOOK_OPTIONS`, `Options`\>\>
+> **FigmaSelectionHookNode**\<`Options`\> = `SerializedResolvedNode`\<`CombineObjects`\<*typeof* `DEFAULT_HOOK_OPTIONS`, `Options`\>\>
 
 Utility type to get the inferred type of a node from the hook using the options object
 
-#### Type parameters
+#### Type Parameters
 
-| Name | Type |
-| :------ | :------ |
-| `Options` | extends [`FigmaSelectionHookOptions`](types.md#figmaselectionhookoptions) = `Record`\<`string`, `never`\> |
+##### Options
 
-___
+`Options` *extends* [`FigmaSelectionHookOptions`](#figmaselectionhookoptions) = `Record`\<`string`, `never`\>
+
+***
 
 ### FigmaSelectionHookType
 
-Ƭ **FigmaSelectionHookType**\<`Options`\>: [readonly [`FigmaSelectionHookNode`](types.md#figmaselectionhooknode)\<`Options`\>[], (`selection`: readonly `BareNode`[]) => `void`, `boolean`]
+> **FigmaSelectionHookType**\<`Options`\> = \[readonly [`FigmaSelectionHookNode`](#figmaselectionhooknode)\<`Options`\>[], (`selection`) => `void`, `boolean`\]
 
 Utility type to get the inferred return type of the hook using the options object
 
@@ -210,16 +210,16 @@ Utility type to get the inferred return type of the hook using the options objec
 
 [2] - Loading state
 
-#### Type parameters
+#### Type Parameters
 
-| Name | Type |
-| :------ | :------ |
-| `Options` | extends [`FigmaSelectionHookOptions`](types.md#figmaselectionhookoptions) = `Record`\<`string`, `never`\> |
+##### Options
+
+`Options` *extends* [`FigmaSelectionHookOptions`](#figmaselectionhookoptions) = `Record`\<`string`, `never`\>
 
 ## Variables
 
 ### FIGMA\_MIXED
 
-• `Const` **FIGMA\_MIXED**: ``"mixed-57999e63-7384-42a1-acf8-d80b9f6c36a7"``
+> `const` **FIGMA\_MIXED**: `"mixed-57999e63-7384-42a1-acf8-d80b9f6c36a7"` = `'mixed-57999e63-7384-42a1-acf8-d80b9f6c36a7'`
 
 Used to replace `figma.mixed` during JSON serialization

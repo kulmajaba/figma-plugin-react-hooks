@@ -1,16 +1,26 @@
 {
-  "extends": "./tsconfig-base",
-  "include": ["src/**/*"],
+  "compilerOptions": {
+    "strict": true,
+    "types": ["@figma/plugin-typings"],
+    "outDir": "lib",
+    "jsx": "react-jsx",
+    "lib": ["ESNext", "DOM"],
+    "target": "ESNext",
+    "noErrorTruncation": false,
+    "skipLibCheck": true
+  },
+  "include": ["src", "tests"],
   "typedocOptions": {
     "entryPoints": ["src/types.ts"],
     "out": "docs-temp",
     "plugin": ["typedoc-plugin-markdown"],
     "disableSources": true,
     "excludeInternal": true,
-    "hideInPageTOC": true,
     "hideBreadcrumbs": true,
     "readme": "none",
     "sort": ["source-order"],
-    "entryDocument": "types.md"
+    "entryFileName": "types.md",
+    "router": "module",
+    "typeAliasPropertiesFormat": "table"
   }
 }
