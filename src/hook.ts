@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-
 import { useEffect, useState } from 'react';
 
 import { DEFAULT_HOOK_OPTIONS, ListenerEventType } from './constants';
