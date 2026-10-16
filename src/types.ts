@@ -202,9 +202,11 @@ export type SerializedNode<Node extends SceneNode, Options extends ResolverOptio
       id: Node['id'];
     } & (ResolvePropertiesDefined<Node, Options> extends true
       ? {
-          [Key in Options['resolveProperties'] extends SceneNodePropertyKey[]
-            ? ApplicableNodeKeys<Node, Options['resolveProperties']>
-            : keyof Node]: SerializedNodeProperty<Node[Key], Options>;
+          [
+            Key in Options['resolveProperties'] extends SceneNodePropertyKey[]
+              ? ApplicableNodeKeys<Node, Options['resolveProperties']>
+              : keyof Node
+          ]: SerializedNodeProperty<Node[Key], Options>;
         }
       : unknown)
   : never;

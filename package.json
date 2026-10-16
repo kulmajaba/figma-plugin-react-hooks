@@ -1,6 +1,6 @@
 {
   "name": "figma-plugin-react-hooks",
-  "version": "3.3.1",
+  "version": "3.3.2",
   "description": "",
   "exports": {
     ".": {
@@ -38,36 +38,43 @@
     "build:hook": "esbuild src/hook.ts --target=es2017 --sourcemap --bundle --external:react --external:figma-plugin-api",
     "build:hook:common": "npm run build:hook -- --format=cjs --outfile=lib/hook.cjs",
     "build:hook:esm": "npm run build:hook -- --format=esm --outfile=lib/hook.mjs",
-    "build:types": "tsc --emitDeclarationOnly --declaration --preserveWatchOutput",
+    "build:types": "tsc --emitDeclarationOnly --declaration --preserveWatchOutput --project tsconfig.build.json",
     "build:docs": "typedoc && cp docs/index.md docs-temp && node ./build-docs.mjs",
-    "test:types": "tsd --typings src/types.ts --files tests/types.test.ts",
+    "test:types": "tstyche",
+    "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
   "author": "Mika Kuitunen",
   "license": "MIT",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=22",
+      "onFail": "warn"
+    }
+  },
   "peerDependencies": {
     "figma-plugin-api": ">=1.1.0",
     "react": ">=17.0.0"
   },
   "devDependencies": {
-    "@figma/eslint-plugin-figma-plugins": "*",
-    "@figma/plugin-typings": "*",
-    "@types/react": "^18.2.61",
-    "@typescript-eslint/eslint-plugin": "^7.1.0",
-    "@typescript-eslint/parser": "^7.1.0",
-    "concurrently": "^8.2.2",
-    "esbuild": "^0.20.1",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-import-resolver-typescript": "^3.6.1",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-prettier": "^5.1.3",
-    "eslint-plugin-react": "^7.33.2",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "prettier": "^3.2.5",
-    "tsd": "^0.30.7",
-    "typedoc": "^0.25.9",
-    "typedoc-plugin-markdown": "^3.17.1",
-    "typescript": "^5.3.3"
+    "@eslint/js": "^9.39.5",
+    "@figma/eslint-plugin-figma-plugins": "^1.0.0",
+    "@figma/plugin-typings": "^1.141.0",
+    "@types/react": "^19.3.0",
+    "concurrently": "^10.0.6",
+    "esbuild": "~0.28.2",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "prettier": "^3.9.10",
+    "tstyche": "^7.2.5",
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.14.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2"
   }
 }
