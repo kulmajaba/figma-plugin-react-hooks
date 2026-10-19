@@ -44,6 +44,10 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kulmajaba/figma-plugin-react-hooks.git"
+  },
   "author": "Mika Kuitunen",
   "license": "MIT",
   "devEngines": {
